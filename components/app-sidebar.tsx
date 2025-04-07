@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from 'next/image'
 import {
   Table as TableIcon
 } from "lucide-react"
@@ -20,6 +21,7 @@ import {
   Button,
   buttonVariants
 } from "@/components/ui/button"
+import beautyosLogo from '@/public/assets/beautyos.png'
 
 // This is sample data.
 const data = {
@@ -30,9 +32,19 @@ const data = {
   },
   teams: [
     {
-      name: "Acme Inc",
-      logo: TableIcon,
-      plan: "Enterprise",
+      name: "BeatyOS",
+      logo: beautyosLogo,
+      plan: "Dashboard",
+    },
+     {
+      name: "BeatyOS2",
+      logo: beautyosLogo,
+      plan: "Dashboard",
+    },
+     {
+      name: "BeatyOS3",
+      logo: beautyosLogo,
+      plan: "Dashboard",
     }
   ],
   navMain: [
