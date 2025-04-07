@@ -1,17 +1,5 @@
-// import { Suspense } from "react"
-// import { DataTableContent } from "@/components/data-table-content"
-import { TableSkeleton } from "@/components/table-skeleton"
-
-// export default function DataTablePage() {
-//   return (
-//     <Suspense fallback={<TableSkeleton />}>
-//       <DataTableContent />
-//     </Suspense>
-//   )
-// }
 import { columns, Client } from '@/components/data-table'; // Assuming columns and Client type are exported
-import { DataTableContent } from './data-table-content';
-import { Suspense } from 'react';
+import { DataTable } from '@/components/data-table';     // Assuming DataTable component is exported
 
 // Simulate fetching data - Replace this with your actual data fetching logic
 async function getClients(): Promise<Client[]> {
@@ -49,21 +37,19 @@ async function getClients(): Promise<Client[]> {
       contact: "111-222-3333",
       last_visit: "2024-07-18",
     },
-    // Add more dummy clients if needed
   ];
 }
 
 // This is a Server Component by default in Next.js App Router
-export default async function DashboardClientsPage() { // Renamed component slightly for clarity
+export default async function ClientsPage() {
   // Fetch the data
   const clientData = await getClients();
 
-  // Render the DataTableContent component, passing data and columns
+  // Render the page with the DataTable
   return (
-    // Using a fragment here, assuming layout provides container/padding
-    <Suspense fallback={<TableSkeleton />}>
-
-      <DataTableContent columns={columns} data={clientData} />
-    </Suspense>
+    <div className="container mx-auto py-10 px-4 sm:px-6 lg:px-8"> {/* Added padding */}
+      <h1 className="text-3xl font-bold mb-6 text-gray-800 dark:text-white">Clients</h1> {/* Styled heading */}
+      <DataTable columns={columns} data={clientData} />
+    </div>
   );
 }

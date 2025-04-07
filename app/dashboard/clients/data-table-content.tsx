@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -9,19 +8,15 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { DataTable } from "@/components/data-table"
-import { Button } from "@/components/ui/button"
-import { Loader } from "lucide-react"
+import { DataTable, Client } from "@/components/data-table"
+import type { ColumnDef } from "@tanstack/react-table"
 
-export function DataTableContent() {
-  const [loading, setLoading] = useState(false)
+interface DataTableContentProps {
+  columns: ColumnDef<Client>[]
+  data: Client[]
+}
 
-  const toggleLoading = () => {
-    setLoading(true)
-    // Simulate loading for 1.5 seconds
-    setTimeout(() => setLoading(false), 1500)
-  }
-
+export function DataTableContent({ columns, data }: DataTableContentProps) {
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -33,24 +28,14 @@ export function DataTableContent() {
               orientation="vertical"
               className="mr-2 data-[orientation=vertical]:h-4"
             />
-            <h1 className="text-lg font-semibold">Data Table</h1>
+            <h1 className="text-lg font-semibold">Clients</h1>
           </div>
           <div className="ml-auto mr-4 flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1"
-              onClick={toggleLoading}
-              disabled={loading}
-            >
-              <Loader className="h-4 w-4" />
-              Simulate Loading
-            </Button>
             <ThemeToggle />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <DataTable loading={loading} />
+          <DataTable columns={columns} data={data} />
         </div>
       </SidebarInset>
     </SidebarProvider>

@@ -1,6 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import * as authService from '../../services/auth';
-import { setToken } from '../../services/auth';
 
 // Async thunk for login
 export const loginUser = createAsyncThunk(
@@ -9,7 +8,6 @@ export const loginUser = createAsyncThunk(
     try {
       const response = await authService.login(credentials);
       // Store the token in localStorage
-      setToken(response.token);
       return response;
     } catch (error) {
       if (error instanceof Error) {
@@ -27,7 +25,6 @@ export const registerUser = createAsyncThunk(
     try {
       const response = await authService.register(userData);
       // Store the token in localStorage
-      setToken(response.token);
       return response;
     } catch (error) {
       if (error instanceof Error) {
