@@ -1,120 +1,92 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react';
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import beautyos from '@/public/assets/beautyos.png'
+import { LoginForm } from '@/components/login-form'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [verificationCode, setVerificationCode] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [showVerification, setShowVerification] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSendCode = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Handler for the first step: Requesting the code
+  const handleSendCodeRequest = async (emailOrPhone: string) => {
     setError(null)
-
-    if (!email) {
-      setError('Please enter your email address')
-      return
-    }
+    setIsLoading(true)
+    console.log('Requesting verification code for:', emailOrPhone)
 
     try {
-      setIsLoading(true)
+      // --- Add your code sending logic here ---
+      // Example: Call an API to send an SMS or email
+      // const response = await fetch('/api/send-code', { method: 'POST', body: JSON.stringify({ emailOrPhone }) });
+      // if (!response.ok) throw new Error('Failed to send code');
 
-      // Generate a verification code
-      const code = Math.floor(100000 + Math.random() * 900000).toString()
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
-      // Store the code in sessionStorage (in a real app, this would be server-side)
-      sessionStorage.setItem('verificationCode', code)
-      sessionStorage.setItem('userEmail', email)
+      console.log('Code sent successfully (simulation)')
+      // No navigation needed here, LoginForm handles showing the code input
 
-      // Simulate sending the code to user's email
-      console.log(`Verification code: ${code} would be sent to ${email}`)
-
-      // Show verification input
-      setShowVerification(true)
-    } catch (error) {
-      console.error('Error sending code:', error)
-      setError('Failed to send verification code. Please try again.')
+    } catch (err) {
+      console.error("Send code error:", err)
+      setError(err instanceof Error ? err.message : 'Failed to send verification code. Please try again.')
+      // Re-throw or handle specific error states if needed to prevent moving to next step in form
+      throw err // Re-throwing stops the form moving to verification step on error
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Renamed handler for the final step: Verifying code and logging in
+  const handleVerifyAndLogin = async (data: { emailOrPhone: string; verificationCode: string }) => {
     setError(null)
-
-    if (!verificationCode) {
-      setError('Please enter the verification code')
-      return
-    }
+    setIsLoading(true)
+    console.log('Verifying code and logging in with:', data)
 
     try {
-      setIsLoading(true)
+      // --- Add your verification and login logic here ---
+      // Example: Call an API to verify the code and log the user in
+      // const response = await fetch('/api/verify-login', { method: 'POST', body: JSON.stringify(data) });
+      // if (!response.ok) throw new Error('Verification or login failed');
 
-      // Check if the code matches
-      const storedCode = sessionStorage.getItem('verificationCode')
-      const storedEmail = sessionStorage.getItem('userEmail')
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
-      if (verificationCode === storedCode && email === storedEmail) {
-        // Authentication successful
-        sessionStorage.removeItem('verificationCode')
-        sessionStorage.setItem('isAuthenticated', 'true')
-
-        // Create a secure HttpOnly cookie in a real implementation
-        // This is a simulation
-        document.cookie = "auth_token=dummy-token; path=/; max-age=86400"
-
-        // Redirect to dashboard
-        router.push('/dashboard')
-      } else {
-        setError('Invalid verification code. Please try again.')
-      }
-    } catch (error) {
-      console.error('Verification error:', error)
-      setError('An error occurred during verification. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleGoogleSignIn = async () => {
-    try {
-      setIsLoading(true)
-
-      // For this demo, we'll simulate getting a user's email from Google
-      const simulatedGoogleEmail = 'user@gmail.com'
-
-      // Generate a verification code
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
-
-      // Store the verification code and email in sessionStorage
-      sessionStorage.setItem('verificationCode', verificationCode)
-      sessionStorage.setItem('userEmail', simulatedGoogleEmail)
-
-      // In a real app, send the verification code to the user's email
-      console.log(`Verification code: ${verificationCode} would be sent to ${simulatedGoogleEmail}`)
-
-      // Create a fake auth cookie for demonstration purposes
-      document.cookie = "auth_token=dummy-google-token; path=/; max-age=86400"
-
-      // Set user as authenticated
-      sessionStorage.setItem('isAuthenticated', 'true')
-
-      // Redirect to dashboard
+      console.log('Verification & Login successful (simulation)')
+      document.cookie = "auth_token=dummy-token; path=/; max-age=86400"
       router.push('/dashboard')
-    } catch (error) {
-      console.error('Google sign-in error:', error)
-      setError('An error occurred during Google sign-in.')
+    } catch (err) {
+        console.error("Verification/Login error:", err)
+        setError(err instanceof Error ? err.message : 'Invalid code or login failed. Please try again.')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Placeholder Google Sign-In handler
+  const handleGoogleSignIn = async () => {
+    setError(null)
+    setIsLoading(true)
+    console.log('Google Sign-In initiated')
+    try {
+        // --- Add your Google Sign-In logic here ---
+        // Example: Use a library like next-auth or firebase auth
+
+        // Simulate Google Sign-In delay
+         await new Promise(resolve => setTimeout(resolve, 1000))
+
+        console.log('Google Sign-In successful (simulation)')
+        document.cookie = "auth_token=dummy-google-token; path=/; max-age=86400"
+        router.push('/dashboard')
+    } catch (err) {
+        console.error("Google Sign-In error:", err)
+        setError(err instanceof Error ? err.message : 'Google Sign-In failed. Please try again.')
+    } finally {
+        setIsLoading(false)
     }
   }
 
@@ -136,145 +108,28 @@ export default function LoginPage() {
         </div>
       </header>
 
-      {/* Main Content - Centered both horizontally and vertically */}
+      {/* Main Content - Use LoginForm with new props */}
       <div className="flex-1 flex items-center justify-center py-6 px-4">
         <div className="w-full max-w-md space-y-6">
-          <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Sign in to your account
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Enter your email to receive a verification code
-            </p>
-          </div>
-
-          {error && (
+           {/* Display general error message */}
+           {error && (
             <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400 rounded-md">
               {error}
             </div>
-          )}
-
-          <form onSubmit={showVerification ? handleVerifyCode : handleSendCode} className="space-y-4">
-            {/* Email Input */}
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={showVerification && isLoading}
-                required
-              />
-            </div>
-
-            {/* Verification Code Input */}
-            {showVerification && (
-              <div className="space-y-2">
-                <label htmlFor="code" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Verification Code
-                </label>
-                <input
-                  id="code"
-                  type="text"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Enter 6-digit code"
-                  maxLength={6}
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  We sent a verification code to {email}
-                </p>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  {showVerification ? 'Verifying...' : 'Sending code...'}
-                </>
-              ) : (
-                showVerification ? 'Verify & Sign In' : 'Send Verification Code'
-              )}
-            </button>
-
-            {/* Resend Code */}
-            {showVerification && (
-              <button
-                type="button"
-                className="text-xs text-primary hover:underline w-full text-center"
-                onClick={() => {
-                  const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-                  sessionStorage.setItem('verificationCode', newCode);
-                  console.log(`New code: ${newCode} would be sent to ${email}`);
-                }}
-              >
-                Resend verification code
-              </button>
-            )}
-          </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t"></span>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          {/* Google Sign In Button */}
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={isLoading}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24">
-              <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                fill="#4285F4"
-              />
-              <path
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                fill="#34A853"
-              />
-              <path
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                fill="#FBBC05"
-              />
-              <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                fill="#EA4335"
-              />
-              <path d="M1 1h22v22H1z" fill="none" />
-            </svg>
-            Sign in with Google
-          </button>
-
-          <div className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-primary underline-offset-4 hover:underline">
-              Register
-            </Link>
-          </div>
+           )}
+           <LoginForm
+             onSendCodeRequest={handleSendCodeRequest}
+             onSubmit={handleVerifyAndLogin}
+             onGoogleSignIn={handleGoogleSignIn}
+             isLoading={isLoading}
+            />
         </div>
       </div>
+
+      {/* Footer - Optional */}
+      <footer className="py-4 px-6 text-center text-xs text-muted-foreground">
+        © {new Date().getFullYear()} BeatyOS. All rights reserved.
+      </footer>
     </div>
   )
 }

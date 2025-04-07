@@ -3,7 +3,7 @@
 import * as React from "react"
 import Image from 'next/image'
 import {
-  Table as TableIcon
+Users
 } from "lucide-react"
 import { type VariantProps } from "class-variance-authority"
 
@@ -49,9 +49,9 @@ const data = {
   ],
   navMain: [
     {
-      title: "Table",
-      url: "/dashboard/table",
-      icon: TableIcon,
+      title: "Clients",
+      url: "/dashboard/clients",
+      icon:   Users,
       isActive: true,
     }
   ],
