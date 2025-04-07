@@ -103,4 +103,5 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ---
 
 This README provides a basic overview. Feel free to expand it with more details about deployment, specific features, or contribution guidelines.
+
 # BeautyOS-Front
