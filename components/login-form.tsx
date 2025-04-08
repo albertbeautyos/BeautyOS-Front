@@ -4,16 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/ui/icons";
-import axiosInstance from '@/api/axiosInstance';
 import axios, { AxiosError } from 'axios';
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { LocalStorageManager } from "@/helpers/localStorageManager";
+import { sendLoginCode, verifyOtpAndLogin } from "@/services/auth";
+import { useAppDispatch } from "@/store/hooks";
+import { verifyOtpThunk } from "@/store/slices/authSlice";
+import { useRouter } from "next/navigation";
 
-interface LoginResponse {
-  id: string;
-  accessToken: string;
-}
 interface ApiErrorResponse {
    message: string;
 }
@@ -28,8 +27,8 @@ function getErrorMessage(error: unknown): string {
   return 'An unknown error occurred.';
 }
 
-interface LoginFormProps extends Omit<React.ComponentProps<"form">, 'onSubmit'> {
-  onLoginSuccess: (userId: string) => void;
+  interface LoginFormProps extends Omit<React.ComponentProps<"form">, 'onSubmit'> {
+    onLoginSuccess?: (userId: string) => void;
 }
 
 const emailRegex = /^\w[\w-\.]*@([\w-]+\.)+[\w-]{2,4}$/;
@@ -38,7 +37,6 @@ const verificationCodeRegex = /^\d{4}$/;
 
 export function LoginForm({
   className,
-  onLoginSuccess,
   ...props
 }: LoginFormProps) {
   const [emailOrPhone, setEmailOrPhone] = useState("");
@@ -48,6 +46,8 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loginAttemptId, setLoginAttemptId] = useState<string | null>(null);
+  const dispatch =useAppDispatch()
+  const router = useRouter()
 
   const validateField = (name: string, value: string): boolean => {
     let error: string | undefined;
@@ -86,11 +86,8 @@ export function LoginForm({
     setLoginAttemptId(null);
 
     try {
-      const response = await axiosInstance.post<LoginResponse>('/auth/login', { username: emailOrPhone });
-      if (!response.data || typeof response.data.id !== 'string') {
-           throw new Error("Initial login call successful, but received invalid ID.");
-      }
-      setLoginAttemptId(response.data.id);
+      const receivedId = await sendLoginCode(emailOrPhone);
+      setLoginAttemptId(receivedId);
       setIsVerificationStep(true);
     } catch (error) {
       setErrors({ api: getErrorMessage(error) });
@@ -107,25 +104,14 @@ export function LoginForm({
     }
     if (!validateField("verificationCode", verificationCode)) return;
 
+    const currentLoginId = loginAttemptId;
+
     setIsLoading(true);
     setErrors({});
 
     try {
-      const response = await axiosInstance.post<LoginResponse>('/auth/verify-login-otp', {
-        id: loginAttemptId,
-        otp: verificationCode
-      });
-
-       if (!response.data || typeof response.data.id !== 'string' || typeof response.data.accessToken !== 'string') {
-           throw new Error("Login verification successful, but received invalid user data or token.");
-       }
-
-       if (rememberMe) {
-          LocalStorageManager.set('accessToken', response.data.accessToken);
-       }
-
-      onLoginSuccess(response.data.id);
-
+     dispatch(verifyOtpThunk({ loginAttemptId: currentLoginId, otp: verificationCode, rememberMe }))
+     router.push('/dashboard')
     } catch (error) {
       setErrors({ api: getErrorMessage(error) });
     } finally {
@@ -155,7 +141,6 @@ export function LoginForm({
         try {
             await new Promise(resolve => setTimeout(resolve, 1000));
             const simulatedUserId = "google-user-" + Math.random().toString(36).substring(7);
-            onLoginSuccess(simulatedUserId);
         } catch (error) {
             setErrors({ api: getErrorMessage(error) });
         } finally {

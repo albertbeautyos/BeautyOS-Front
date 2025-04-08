@@ -1,9 +1,15 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { reducers } from './slices';
+// Import your slice reducers here
+import authReducer from './slices/authSlice'; // Import the auth reducer
+// import other reducers...
 
 // Create and configure the store
 export const store = configureStore({
-  reducer: reducers,
+  reducer: {
+    // Add reducers here
+    auth: authReducer, // Add the auth reducer to the store
+    // other: otherReducer,
+  },
   // Optional: Add middleware
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -15,4 +21,5 @@ export const store = configureStore({
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<typeof store.getState>;
+// Inferred type: {auth: AuthState, ...}
 export type AppDispatch = typeof store.dispatch;
