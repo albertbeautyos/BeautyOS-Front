@@ -1,14 +1,7 @@
-// import { Suspense } from "react"
-// import { DataTableContent } from "@/components/data-table-content"
+
 import { TableSkeleton } from "@/components/table-skeleton"
 
-// export default function DataTablePage() {
-//   return (
-//     <Suspense fallback={<TableSkeleton />}>
-//       <DataTableContent />
-//     </Suspense>
-//   )
-// }
+
 import { columns, Client } from '@/components/data-table'; // Assuming columns and Client type are exported
 import { DataTableContent } from './data-table-content';
 import { Suspense } from 'react';

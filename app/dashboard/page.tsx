@@ -1,43 +1,43 @@
-import { AppSidebar } from "@/components/app-sidebar"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { ThemeToggle } from "@/components/ui/theme-toggle"
-import Image from 'next/image';
-import beautyosLogo from '@/public/assets/beautyos.png';
+"use client"; // Make it a Client Component
+
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
 
 export default function Page() {
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4"
-            />
+  // Removed isLoading state and useEffect
 
-          </div>
-          <ThemeToggle />
-        </header>
-        <div className="flex flex-1 flex-col items-center justify-center p-4 pt-0">
-          <Image src={beautyosLogo} alt="BeatyOS Logo" width={150} height={150} className="mb-4" />
-          <h1 className="text-4xl font-bold">Welcome to BeautyOS</h1>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  )
+  // Always render Skeleton UI for two charts
+  return (
+    <div className="flex flex-1 flex-col md:flex-row items-center justify-center gap-8 p-4 pt-0">
+      {/* Skeleton for Chart 1 */}
+      <div className="w-full md:w-1/2 h-64 flex flex-col items-center justify-center border rounded-lg p-4">
+         <Skeleton className="h-8 w-1/2 mb-4" /> {/* Chart Title Skeleton */}
+         <Skeleton className="h-full w-full" /> {/* Chart Area Skeleton */}
+      </div>
+      {/* Skeleton for Chart 2 */}
+      <div className="w-full md:w-1/2 h-64 flex flex-col items-center justify-center border rounded-lg p-4">
+         <Skeleton className="h-8 w-1/2 mb-4" /> {/* Chart Title Skeleton */}
+         <Skeleton className="h-full w-full" /> {/* Chart Area Skeleton */}
+      </div> <div className="w-full md:w-1/2 h-64 flex flex-col items-center justify-center border rounded-lg p-4">
+         <Skeleton className="h-8 w-1/2 mb-4" /> {/* Chart Title Skeleton */}
+         <Skeleton className="h-full w-full" /> {/* Chart Area Skeleton */}
+      </div>
+      {/* Skeleton for Chart 2 */}
+      <div className="w-full md:w-1/2 h-64 flex flex-col items-center justify-center border rounded-lg p-4">
+         <Skeleton className="h-8 w-1/2 mb-4" /> {/* Chart Title Skeleton */}
+         <Skeleton className="h-full w-full" /> {/* Chart Area Skeleton */}
+      </div> <div className="w-full md:w-1/2 h-64 flex flex-col items-center justify-center border rounded-lg p-4">
+         <Skeleton className="h-8 w-1/2 mb-4" /> {/* Chart Title Skeleton */}
+         <Skeleton className="h-full w-full" /> {/* Chart Area Skeleton */}
+      </div>
+      {/* Skeleton for Chart 2 */}
+      <div className="w-full md:w-1/2 h-64 flex flex-col items-center justify-center border rounded-lg p-4">
+         <Skeleton className="h-8 w-1/2 mb-4" /> {/* Chart Title Skeleton */}
+         <Skeleton className="h-full w-full" /> {/* Chart Area Skeleton */}
+      </div> <div className="w-full md:w-1/2 h-64 flex flex-col items-center justify-center border rounded-lg p-4">
+         <Skeleton className="h-8 w-1/2 mb-4" /> {/* Chart Title Skeleton */}
+         <Skeleton className="h-full w-full" /> {/* Chart Area Skeleton */}
+      </div>
+      {/* Skeleton for Chart 2 */}
+    </div>
+  );
 }
