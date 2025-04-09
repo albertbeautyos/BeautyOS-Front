@@ -46,7 +46,7 @@ export const logout = (): void => {
     SessionStorageManager.remove('accessToken');
 
     // Redirect the user to the login page
-    window.location.href = '/login';
+    window.location.href = '/';
   } catch (error) {
     // Handle potential errors during storage removal
     console.error("Error during logout storage cleanup:", error);

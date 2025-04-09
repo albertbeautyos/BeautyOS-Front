@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { sendLoginCode, verifyOtpAndLogin, logout as logoutService } from '@/services/auth';
 import { LocalStorageManager } from "@/helpers/localStorageManager";
 import { SessionStorageManager } from "@/helpers/sessionStorageManager";
+import { RootState } from '../store'; // Import RootState type from store
 
 // Define the structure of the user info we expect after login
 // Derived from LoginResponse in services/auth.ts, excluding accessToken
@@ -157,3 +158,32 @@ const authSlice = createSlice({
 // Export actions and reducer
 export const { clearAuthError } = authSlice.actions;
 export default authSlice.reducer;
+
+// Selectors
+/**
+ * Selector to get the user information from the auth state.
+ * @param state The root state of the Redux store.
+ * @returns The user information object or null if not authenticated.
+ */
+export const selectUserInfo = (state: RootState) => state.auth.userInfo;
+
+/**
+ * Selector to get the authentication status.
+ * @param state The root state of the Redux store.
+ * @returns True if the user is authenticated, false otherwise.
+ */
+export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated;
+
+/**
+ * Selector to get the loading status of the auth slice.
+ * @param state The root state of the Redux store.
+ * @returns The current loading status ('idle' or 'pending').
+ */
+export const selectAuthLoading = (state: RootState) => state.auth.loading;
+
+/**
+ * Selector to get any authentication error message.
+ * @param state The root state of the Redux store.
+ * @returns The error message string or null if no error.
+ */
+export const selectAuthError = (state: RootState) => state.auth.error;

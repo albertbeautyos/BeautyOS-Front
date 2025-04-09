@@ -32,7 +32,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 const emailRegex = /^\w[\w-\.]*@([\w-]+\.)+[\w-]{2,4}$/;
-const phoneRegex = /^[\+\d]?(\s*\(?\d{3}\)?\s*[-\.\s]?)?\d{3}[-\.\s]?\d{4}$/;
+const phoneRegex = /^(\+?1[.\-\s]?)?(\(?\d{3}\)?[.\-\s]?)?\d{3}[.\-\s]?\d{4}$/;
 const verificationCodeRegex = /^\d{4}$/;
 
 export function LoginForm({
