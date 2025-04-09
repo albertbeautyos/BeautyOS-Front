@@ -35,6 +35,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label"; // Import Label
+import { cn } from "@/lib/utils";
 
 type SheetMode = 'add' | 'view' | 'edit' | null;
 
@@ -93,6 +94,9 @@ export default function DashboardClientsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
+  // State for the sidebar tab
+  const [selectedSidebarTab, setSelectedSidebarTab] = useState<string>('Details');
+
   // --- WORKAROUND for lingering pointer-events: none on body ---
   useEffect(() => {
     if (!isSheetOpen) {
@@ -114,7 +118,7 @@ export default function DashboardClientsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getFakeClients();
+      const data = await getClients();
       setClientData(data);
     } catch (err) {
       console.error("Failed to load client data:", err);
@@ -302,137 +306,195 @@ export default function DashboardClientsPage() {
         open={isSheetOpen}
         onOpenChange={handleSheetOpenChange}
       >
-        <SheetContent className="sm:max-w-md w-full p-0 overflow-y-auto flex flex-col">
-          {/* --- STATIC HEADER FOR VIEW/EDIT (like image) --- */}
-          {(sheetMode === 'view' || sheetMode === 'edit') && selectedClient && (
-              <SheetHeader className="p-2.5 border-b bg-muted/30 space-y-2">
-                  <div className="flex items-center gap-2">
-                      <Avatar className="h-10 w-10 border">
-                          <AvatarImage src={undefined} alt={`${selectedClient.first_name} ${selectedClient.last_name}`} />
-                          <AvatarFallback className="text-base">{selectedClient.first_name?.[0]}{selectedClient.last_name?.[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                          <SheetTitle className="text-base font-semibold leading-tight">{selectedClient.first_name} {selectedClient.last_name}</SheetTitle>
-                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
-                              <span>{StaticClientViewData.points} PTS</span>
-                              <span className="mx-0.5">&bull;</span>
-                              <span>{StaticClientViewData.visits} VST</span>
-                              <span className="mx-0.5">&bull;</span>
-                              <span className="flex items-center gap-0.5">
-                                  <StarIcon className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
-                                  {StaticClientViewData.rating}({StaticClientViewData.ratingCount})
-                              </span>
-                          </div>
-                      </div>
-                      <div className="flex justify-end gap-1 pr-8" >
-                          {sheetMode === 'view' && (
-                             <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => openSheet('edit', selectedClient)}>
-                                 <Edit className="h-3.5 w-3.5" />
-                                 <span className="sr-only">Edit</span>
-                             </Button>
+        <SheetContent className={cn(
+          "w-full p-0 flex flex-col overflow-hidden",
+          // Conditionally increase width ONLY for view/edit to accommodate sidebar
+          (sheetMode === 'view' || sheetMode === 'edit') ? "sm:max-w-4xl" : "sm:max-w-md"
+        )}>
+          {/* Conditional Layout: Two columns for view/edit, single for add */}
+          {(sheetMode === 'view' || sheetMode === 'edit') ? (
+            // --- Two Column Layout ---
+            <div className="flex flex-row w-full h-full">
+              {/* --- Left Column (Existing Content) --- */}
+              <div className="flex flex-col w-1/2 border-r overflow-hidden">
+                {/* Place ALL existing conditional headers and content here */}
+                {/* Static Header for View/Edit */}
+                 {(sheetMode === 'view' || sheetMode === 'edit') && selectedClient && (
+                    <SheetHeader className="p-2.5 border-b bg-muted/30 space-y-2 flex-shrink-0">
+                         {/* ... existing view/edit header content ... */}
+                         <div className="flex items-center gap-2">
+                             <Avatar className="h-10 w-10 border">
+                                 <AvatarImage src={undefined} alt={`${selectedClient.first_name} ${selectedClient.last_name}`} />
+                                 <AvatarFallback className="text-base">{selectedClient.first_name?.[0]}{selectedClient.last_name?.[0]}</AvatarFallback>
+                             </Avatar>
+                             <div className="flex-1">
+                                 <SheetTitle className="text-base font-semibold leading-tight">{selectedClient.first_name} {selectedClient.last_name}</SheetTitle>
+                                 <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
+                                     <span>{StaticClientViewData.points} PTS</span>
+                                     <span className="mx-0.5">&bull;</span>
+                                     <span>{StaticClientViewData.visits} VST</span>
+                                     <span className="mx-0.5">&bull;</span>
+                                     <span className="flex items-center gap-0.5">
+                                         <StarIcon className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+                                         {StaticClientViewData.rating}({StaticClientViewData.ratingCount})
+                                     </span>
+                                 </div>
+                             </div>
+                             <div className="flex justify-end gap-1 pr-8" >
+                                 {sheetMode === 'view' && (
+                                    <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => openSheet('edit', selectedClient)}>
+                                        <Edit className="h-3.5 w-3.5" />
+                                        <span className="sr-only">Edit</span>
+                                    </Button>
+                                 )}
+                                <Button size="icon" variant="outline" className="h-6 w-6"><Mail className="h-3.5 w-3.5" /><span className="sr-only">Email</span></Button>
+                                <Button size="icon" variant="outline" className="h-6 w-6"><Phone className="h-3.5 w-3.5" /><span className="sr-only">Call</span></Button>
+                                <Button size="icon" variant="outline" className="h-6 w-6"><Bell className="h-3.5 w-3.5" /><span className="sr-only">Notifications</span></Button>
+                            </div>
+                         </div>
+                         <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
+                               {/* ... existing stats grid ... */}
+                                <div className="bg-background p-1 rounded border">
+                                    <p className="font-semibold text-[11px]">{StaticClientViewData.showRate}%</p>
+                                    <p className="text-muted-foreground leading-tight">Show Rate</p>
+                                </div>
+                                <div className="bg-background p-1 rounded border">
+                                    <p className="font-semibold text-[11px]">{StaticClientViewData.avgVisitWeeks} <span className="font-normal">Wks</span></p>
+                                    <p className="text-muted-foreground leading-tight">AVG Visit</p>
+                                </div>
+                                <div className="bg-background p-1 rounded border">
+                                     <p className="font-semibold text-[11px]">${StaticClientViewData.avgVisitValue}</p>
+                                    <p className="text-muted-foreground leading-tight">AVG Value</p>
+                                </div>
+                            </div>
+                    </SheetHeader>
+                 )}
+                 {/* END Static Header for View/Edit */}
+
+                 {/* Scrollable Content Area (contains static elements + form) */}
+                 <div className="flex-1 overflow-y-auto p-3">
+                    {/* Static View Elements */}
+                     {(sheetMode === 'view' || sheetMode === 'edit') && selectedClient && (
+                        <div className="space-y-3 mb-3">
+                           {/* ... existing static view elements (Contact, Tags, Separator) ... */}
+                               {/* Contact Info - smaller gap */}
+                              <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                      <Label className="text-[10px] text-muted-foreground">Contact</Label>
+                                      <div className="flex items-center gap-1 mt-0">
+                                          <p className="text-[11px] truncate">{selectedClient.email}</p>
+                                          <Button variant="ghost" size="icon" className="h-4 w-4">
+                                              <Copy className="h-2 w-2" />
+                                          </Button>
+                                      </div>
+                                      <div className="flex items-center gap-1 mt-0">
+                                          <p className="text-[11px]">{selectedClient.contact}</p>
+                                          <Button variant="ghost" size="icon" className="h-4 w-4">
+                                              <Copy className="h-2 w-2" />
+                                          </Button>
+                                      </div>
+                                  </div>
+                                  <div>
+                                      <Label className="text-[10px] text-muted-foreground">Last Visited</Label>
+                                      <p className="text-[11px] mt-0">{StaticClientViewData.lastVisited}</p>
+                                  </div>
+                              </div>
+                              {/* Tags - Hair - tighter */}
+                              <div>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                      {StaticClientViewData.tagsHair.map((tag, index) => (
+                                          <Badge key={`hair-${index}`} variant="secondary" className="font-normal text-[10px] px-1 py-0 leading-tight">
+                                              {tag}
+                                          </Badge>
+                                      ))}
+                                  </div>
+                              </div>
+                              {/* Tags - Salon - tighter */}
+                              <div>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                      {StaticClientViewData.tagsSalon.map((tag, index) => (
+                                          <Badge key={`salon-${index}`} variant="secondary" className="font-normal text-[10px] px-1 py-0 leading-tight">
+                                              {tag}
+                                          </Badge>
+                                      ))}
+                                  </div>
+                              </div>
+                              <Separator className="my-2"/>
+                        </div>
+                     )}
+                     {/* END Static View Elements */}
+
+                     {/* The Form */}
+                     <AddClientForm
+                       key={selectedClient?.id || 'view-edit'}
+                       initialData={mapClientToFormData(selectedClient)}
+                       isInitiallyEditing={sheetMode === 'edit'}
+                       onSuccess={handleFormSuccess}
+                       onCancelEdit={() => openSheet('view', selectedClient)}
+                       className="mt-4"
+                     />
+                 </div>
+                 {/* END Scrollable Content Area */}
+              </div>
+              {/* --- End Left Column --- */}
+
+              {/* --- Right Column (New Sidebar) --- */}
+              <div className="flex flex-col w-1/2 h-full">
+                 {/* Top Navigation Menu - Updated Style */}
+                 <div className="p-4 border-b flex-shrink-0">
+                    {/* Use div or button for styling like image */}
+                    <div className="flex space-x-6">
+                      {['DASH', 'NOTES', 'Messages','Appointments',"Products"].map((tab) => (
+                        <button
+                          key={tab}
+                          onClick={() => setSelectedSidebarTab(tab)}
+                          className={cn(
+                            "uppercase text-xs font-semibold pb-1",
+                            selectedSidebarTab === tab
+                              ? "text-foreground border-b-2 border-foreground"
+                              : "text-muted-foreground hover:text-foreground/80"
                           )}
-                         <Button size="icon" variant="outline" className="h-6 w-6"><Mail className="h-3.5 w-3.5" /><span className="sr-only">Email</span></Button>
-                         <Button size="icon" variant="outline" className="h-6 w-6"><Phone className="h-3.5 w-3.5" /><span className="sr-only">Call</span></Button>
-                         <Button size="icon" variant="outline" className="h-6 w-6"><Bell className="h-3.5 w-3.5" /><span className="sr-only">Notifications</span></Button>
-                     </div>
-                  </div>
-
-                   <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
-                       <div className="bg-background p-1 rounded border">
-                           <p className="font-semibold text-[11px]">{StaticClientViewData.showRate}%</p>
-                           <p className="text-muted-foreground leading-tight">Show Rate</p>
-                       </div>
-                       <div className="bg-background p-1 rounded border">
-                           <p className="font-semibold text-[11px]">{StaticClientViewData.avgVisitWeeks} <span className="font-normal">Wks</span></p>
-                           <p className="text-muted-foreground leading-tight">AVG Visit</p>
-                       </div>
-                       <div className="bg-background p-1 rounded border">
-                            <p className="font-semibold text-[11px]">${StaticClientViewData.avgVisitValue}</p>
-                           <p className="text-muted-foreground leading-tight">AVG Value</p>
-                       </div>
-                   </div>
+                        >
+                          {tab}
+                        </button>
+                      ))}
+                    </div>
+                 </div>
+                 {/* Content Area for Right Sidebar - Updated Content */}
+                 <div className="flex-1 overflow-y-auto p-3 flex items-center justify-center">
+                    {/* Display the selected tab name */}
+                    <p className="text-lg font-medium text-muted-foreground">{selectedSidebarTab}</p>
+                 </div>
+              </div>
+              {/* --- End Right Column --- */}
+            </div>
+            // --- End Two Column Layout ---
+          ) : (
+            // --- Single Column Layout (Add Mode - Existing Structure) ---
+            <>
+              {/* Original Sheet Header for Add mode */}
+              <SheetHeader className="p-6 border-b">
+                  <SheetTitle>{getSheetTitle()}</SheetTitle>
+                  <SheetDescription>
+                      Fill in the details below to add a new client.
+                  </SheetDescription>
               </SheetHeader>
+
+              {/* Scrollable Content Area */}
+              <div className="flex-1 overflow-y-auto p-3">
+                  {/* Render ONLY the form for add mode */}
+                  <AddClientForm
+                    key={'add'}
+                    initialData={undefined}
+                    isInitiallyEditing={true}
+                    onSuccess={handleFormSuccess}
+                    onCancelEdit={() => handleSheetOpenChange(false)} // Close sheet on cancel in add mode
+                    className="mt-4"
+                  />
+              </div>
+            </>
+            // --- End Single Column Layout ---
           )}
-          {/* --- END STATIC HEADER --- */}
-
-          {/* Original Sheet Header (only for Add mode now) */}
-          {sheetMode === 'add' && (
-            <SheetHeader className="p-6 border-b">
-                <SheetTitle>{getSheetTitle()}</SheetTitle>
-                <SheetDescription>
-                    Fill in the details below to add a new client.
-                </SheetDescription>
-            </SheetHeader>
-          )}
-
-          {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto p-3">
-              {/* --- STATIC VIEW ELEMENTS (like image, shown in view/edit) --- */}
-              {(sheetMode === 'view' || sheetMode === 'edit') && selectedClient && (
-                  <div className="space-y-3 mb-3">
-                       {/* Contact Info - smaller gap */}
-                      <div className="grid grid-cols-2 gap-2">
-                          <div>
-                              <Label className="text-[10px] text-muted-foreground">Contact</Label>
-                              <div className="flex items-center gap-1 mt-0">
-                                  <p className="text-[11px] truncate">{selectedClient.email}</p>
-                                  <Button variant="ghost" size="icon" className="h-4 w-4">
-                                      <Copy className="h-2 w-2" />
-                                  </Button>
-                              </div>
-                              <div className="flex items-center gap-1 mt-0">
-                                  <p className="text-[11px]">{selectedClient.contact}</p>
-                                  <Button variant="ghost" size="icon" className="h-4 w-4">
-                                      <Copy className="h-2 w-2" />
-                                  </Button>
-                              </div>
-                          </div>
-                          <div>
-                              <Label className="text-[10px] text-muted-foreground">Last Visited</Label>
-                              <p className="text-[11px] mt-0">{StaticClientViewData.lastVisited}</p>
-                          </div>
-                      </div>
-
-                      {/* Tags - Hair - tighter */}
-                      <div>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                              {StaticClientViewData.tagsHair.map((tag, index) => (
-                                  <Badge key={`hair-${index}`} variant="secondary" className="font-normal text-[10px] px-1 py-0 leading-tight">
-                                      {tag}
-                                  </Badge>
-                              ))}
-                          </div>
-                      </div>
-
-                      {/* Tags - Salon - tighter */}
-                      <div>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                              {StaticClientViewData.tagsSalon.map((tag, index) => (
-                                  <Badge key={`salon-${index}`} variant="secondary" className="font-normal text-[10px] px-1 py-0 leading-tight">
-                                      {tag}
-                                  </Badge>
-                              ))}
-                          </div>
-                      </div>
-
-                      <Separator className="my-2"/>
-
-
-                  </div>
-              )}
-              {/* --- END STATIC VIEW ELEMENTS --- */}
-
-            {/* --- RENDER THE FORM --- */}
-            <AddClientForm
-              key={selectedClient?.id || 'add'}
-              initialData={mapClientToFormData(selectedClient)}
-              isInitiallyEditing={sheetMode === 'edit' || sheetMode === 'add'}
-              onSuccess={handleFormSuccess}
-              onCancelEdit={() => openSheet('view', selectedClient)}
-              className="mt-4"
-            />
-          </div>
-
         </SheetContent>
       </Sheet>
 

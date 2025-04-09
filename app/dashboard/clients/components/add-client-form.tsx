@@ -191,25 +191,25 @@ export function AddClientForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className={`space-y-3 ${className}`}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className={`space-y-4 ${className}`}>
 
          {/* Edit/Cancel Buttons for View Mode */}
          {initialData && (
-            <div className="flex justify-end gap-2 mb-3">
+            <div className="flex justify-end gap-2 mb-4">
                 {!isEditing ? (
                     <Button type="button" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                        <PencilIcon className="mr-1.5 h-3.5 w-3.5" /> Edit
+                        <PencilIcon className="mr-2 h-4 w-4" /> Edit
                     </Button>
                 ) : (
                     <Button type="button" variant="ghost" size="sm" onClick={handleCancelEdit}>
-                         <XIcon className="mr-1.5 h-3.5 w-3.5" /> Cancel
+                         <XIcon className="mr-2 h-4 w-4" /> Cancel
                     </Button>
                 )}
             </div>
          )}
 
         {/* Form Fields Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* --- Fields --- */}
           {/* Use isDisabled prop on Input/Button/Calendar etc. */}
           <FormField
@@ -217,11 +217,11 @@ export function AddClientForm({
             name="firstName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">First Name {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
+                <FormLabel>First Name {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter first name" {...field} disabled={isDisabled} className="h-8 text-sm" />
+                  <Input {...field} disabled={isDisabled} />
                 </FormControl>
-                <FormMessage className="text-xs" />
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -230,11 +230,11 @@ export function AddClientForm({
             name="lastName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">Last Name {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
+                <FormLabel>Last Name {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter last name" {...field} disabled={isDisabled} className="h-8 text-sm" />
+                  <Input {...field} disabled={isDisabled} />
                 </FormControl>
-                <FormMessage className="text-xs" />
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -243,11 +243,11 @@ export function AddClientForm({
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">Phone {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
+                <FormLabel>Phone {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter phone number" {...field} disabled={isDisabled} className="h-8 text-sm" />
+                  <Input {...field} disabled={isDisabled} />
                 </FormControl>
-                <FormMessage className="text-xs" />
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -256,11 +256,11 @@ export function AddClientForm({
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">Email {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
+                <FormLabel>Email {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="Enter email address" {...field} disabled={isDisabled} className="h-8 text-sm" />
+                  <Input type="email" {...field} disabled={isDisabled} />
                 </FormControl>
-                <FormMessage className="text-xs" />
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -269,11 +269,11 @@ export function AddClientForm({
             name="gender"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">Gender</FormLabel>
+                <FormLabel>Gender</FormLabel>
                 <FormControl>
-                  <Input placeholder="Select gender" {...field} disabled={isDisabled} className="h-8 text-sm" />
+                  <Input {...field} disabled={isDisabled} />
                 </FormControl>
-                <FormMessage className="text-xs" />
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -282,11 +282,11 @@ export function AddClientForm({
             name="pronouns"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">Pronouns</FormLabel>
+                <FormLabel>Pronouns</FormLabel>
                 <FormControl>
-                  <Input placeholder="Select pronouns" {...field} disabled={isDisabled} className="h-8 text-sm" />
+                  <Input {...field} disabled={isDisabled} />
                 </FormControl>
-                <FormMessage className="text-xs" />
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -295,11 +295,11 @@ export function AddClientForm({
             name="referredBy"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">Referred By</FormLabel>
+                <FormLabel>Referred By</FormLabel>
                 <FormControl>
-                  <Input placeholder="Select referral source" {...field} disabled={isDisabled} className="h-8 text-sm" />
+                  <Input {...field} disabled={isDisabled} />
                 </FormControl>
-                <FormMessage className="text-xs" />
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -308,11 +308,11 @@ export function AddClientForm({
             name="clientType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">Client Type {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
+                <FormLabel>Client Type {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Select client type" {...field} disabled={isDisabled} className="h-8 text-sm" />
+                  <Input {...field} disabled={isDisabled} />
                 </FormControl>
-                <FormMessage className="text-xs" />
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -321,14 +321,14 @@ export function AddClientForm({
             name="birthday"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel className="text-xs">Date of birth</FormLabel>
+                <FormLabel>Date of birth</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal h-8 text-sm", // Apply height/size
+                          "w-full pl-3 text-left font-normal", // Ensure button takes full width
                           !field.value && "text-muted-foreground"
                         )}
                         disabled={isDisabled} // Disable trigger too
@@ -354,25 +354,25 @@ export function AddClientForm({
                     />
                   </PopoverContent>
                 </Popover>
-                <FormMessage className="text-xs" />
+                <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
         {/* Address Fields */}
-        <h3 className="text-base font-medium pt-3 border-t">Address</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <h3 className="text-lg font-medium pt-4 border-t">Address</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
                 control={form.control}
                 name="address.street"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="text-xs">Street</FormLabel>
+                    <FormLabel>Street</FormLabel>
                     <FormControl>
-                        <Input placeholder="123 Main St" {...field} value={field.value ?? ''} disabled={isDisabled} className="h-8 text-sm" />
+                        <Input {...field} disabled={isDisabled} />
                     </FormControl>
-                    <FormMessage className="text-xs" />
+                    <FormMessage />
                     </FormItem>
                 )}
             />
@@ -381,11 +381,11 @@ export function AddClientForm({
                 name="address.city"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="text-xs">City</FormLabel>
+                    <FormLabel>City</FormLabel>
                     <FormControl>
-                        <Input placeholder="Anytown" {...field} value={field.value ?? ''} disabled={isDisabled} className="h-8 text-sm" />
+                        <Input {...field} disabled={isDisabled} />
                     </FormControl>
-                    <FormMessage className="text-xs" />
+                    <FormMessage />
                     </FormItem>
                 )}
             />
@@ -394,11 +394,11 @@ export function AddClientForm({
                 name="address.state"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="text-xs">State</FormLabel>
+                    <FormLabel>State</FormLabel>
                     <FormControl>
-                        <Input placeholder="Select state" {...field} value={field.value ?? ''} disabled={isDisabled} className="h-8 text-sm" />
+                        <Input {...field} disabled={isDisabled} />
                     </FormControl>
-                    <FormMessage className="text-xs" />
+                    <FormMessage />
                     </FormItem>
                 )}
             />
@@ -407,11 +407,11 @@ export function AddClientForm({
                 name="address.postalCode"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="text-xs">Postal Code</FormLabel>
+                    <FormLabel>Postal Code</FormLabel>
                     <FormControl>
-                        <Input placeholder="Enter postal code" {...field} value={field.value ?? ''} disabled={isDisabled} className="h-8 text-sm" />
+                        <Input {...field} disabled={isDisabled} />
                     </FormControl>
-                    <FormMessage className="text-xs" />
+                    <FormMessage />
                     </FormItem>
                 )}
             />
@@ -420,11 +420,11 @@ export function AddClientForm({
                 name="address.country"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="text-xs">Country</FormLabel>
+                    <FormLabel>Country</FormLabel>
                     <FormControl>
-                        <Input placeholder="Select country" {...field} value={field.value ?? ''} disabled={isDisabled} className="h-8 text-sm" />
+                        <Input {...field} disabled={isDisabled} />
                     </FormControl>
-                    <FormMessage className="text-xs" />
+                    <FormMessage />
                     </FormItem>
                 )}
             />
@@ -432,7 +432,7 @@ export function AddClientForm({
 
         {/* Submit Button (conditional) */}
         {(isEditing || !initialData) && (
-            <Button type="submit" disabled={isSubmitting} size="sm" className="w-full !mt-4">
+            <Button type="submit" disabled={isSubmitting} className="w-full !mt-6">
             {isSubmitting ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
             ) : initialData ? (
