@@ -1,18 +1,42 @@
 "use client"
 
-import { ColumnDef } from "@tanstack/react-table"
+import { ColumnDef, RowData } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DataTableColumnHeader } from "@/components/data-table-column-header"
 import { DataTableRowActions } from "@/components/data-table-row-actions"
+import { NewClientData } from "@/services/clients"
 
-// Define the structure for a client
+// Define the structure for a client - map API fields if needed
 export type Client = {
-  id: number | string // Assuming ID can be number or string
+  id: string // Assuming ID comes from API
   first_name: string
   last_name: string
   email: string
   contact: string
   last_visit: string | Date // Assuming date can be string or Date object
+  // Add other fields matching your actual API response
+  // Potentially add fields from NewClientData if they are returned by GET /clients
+  gender?: string
+  pronouns?: string
+  referredBy?: string
+  clientType?: string
+  birthday?: Date | string
+  address?: {
+    street?: string
+    city?: string
+    state?: string
+    postalCode?: string
+    country?: string
+  }
+}
+
+// Extend table meta type to include our handlers
+declare module '@tanstack/react-table' {
+  interface TableMeta<TData extends RowData> {
+    viewClient?: (client: Client) => void
+    editClient?: (client: Client) => void
+    deleteClient?: (client: Client) => void
+  }
 }
 
 // Define the columns based on the Client type
@@ -46,7 +70,7 @@ export const columns: ColumnDef<Client>[] = [
     header: ({ column }) => (
        <DataTableColumnHeader column={column} title="ID" />
     ),
-    cell: ({ row }) => <div className="w-[80px]">{String(row.getValue("id"))}</div>,
+    cell: ({ row }) => <div className="w-[80px]">{row.getValue("id")}</div>,
     enableHiding: false,
   },
   {
@@ -54,40 +78,31 @@ export const columns: ColumnDef<Client>[] = [
      header: ({ column }) => (
        <DataTableColumnHeader column={column} title="First Name" />
      ),
-    cell: ({ row }) => <div>{String(row.getValue("first_name"))}</div>,
-    filterFn: (row, id, value) => {
-      const rowValue = String(row.getValue(id));
-      return String(value).split(',').some(val => rowValue.includes(val)); // Basic multi-value filter example
-    },
+    cell: ({ row }) => <div>{row.getValue("first_name")}</div>,
+    filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
    {
     accessorKey: "last_name",
      header: ({ column }) => (
        <DataTableColumnHeader column={column} title="Last Name" />
      ),
-    cell: ({ row }) => <div>{String(row.getValue("last_name"))}</div>,
-    filterFn: (row, id, value) => {
-      const rowValue = String(row.getValue(id));
-      return String(value).split(',').some(val => rowValue.includes(val));
-    },
+    cell: ({ row }) => <div>{row.getValue("last_name")}</div>,
+    filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
   {
     accessorKey: "email",
     header: ({ column }) => (
        <DataTableColumnHeader column={column} title="Email" />
      ),
-    cell: ({ row }) => <div>{String(row.getValue("email"))}</div>,
-     filterFn: (row, id, value) => {
-       const rowValue = String(row.getValue(id));
-       return String(value).split(',').some(val => rowValue.includes(val));
-    },
+    cell: ({ row }) => <div>{row.getValue("email")}</div>,
+     filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
    {
     accessorKey: "contact",
      header: ({ column }) => (
        <DataTableColumnHeader column={column} title="Contact" />
      ),
-    cell: ({ row }) => <div>{String(row.getValue("contact"))}</div>,
+    cell: ({ row }) => <div>{row.getValue("contact")}</div>,
   },
   {
     accessorKey: "last_visit",
@@ -103,6 +118,14 @@ export const columns: ColumnDef<Client>[] = [
   },
    {
      id: "actions",
-     cell: ({ row }) => <DataTableRowActions row={row} />,
+     cell: ({ row, table }) => (
+       <DataTableRowActions
+         row={row}
+         // Access handlers from table meta
+         onView={() => table.options.meta?.viewClient?.(row.original)}
+         onEdit={() => table.options.meta?.editClient?.(row.original)}
+         onDelete={() => table.options.meta?.deleteClient?.(row.original)}
+       />
+     ),
    },
 ]
