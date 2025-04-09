@@ -1,6 +1,7 @@
 "use client"
-import { DataTable, Client } from "@/components/data-table"
+import { DataTable } from "@/components/data-table"
 import type { ColumnDef } from "@tanstack/react-table"
+import { Client } from "./components/columns"
 
 interface DataTableContentProps {
   columns: ColumnDef<Client>[]

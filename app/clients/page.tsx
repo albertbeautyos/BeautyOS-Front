@@ -1,5 +1,5 @@
-import { columns, Client } from '@/components/data-table'; // Assuming columns and Client type are exported
 import { DataTable } from '@/components/data-table';     // Assuming DataTable component is exported
+import { Client, columns } from '../dashboard/clients/components/columns';
 
 // Simulate fetching data - Replace this with your actual data fetching logic
 async function getClients(): Promise<Client[]> {

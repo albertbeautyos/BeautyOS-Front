@@ -1,14 +1,15 @@
+"use client"; // Make this a Client Component
 
-import { TableSkeleton } from "@/components/table-skeleton"
-
-
-import { columns, Client } from '@/components/data-table'; // Assuming columns and Client type are exported
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import { Input } from "@/components/ui/input"; // Assuming Shadcn UI Input
+import { TableSkeleton } from "@/components/table-skeleton";
 import { DataTableContent } from './data-table-content';
-import { Suspense } from 'react';
+import { Client, columns } from "./components/columns";
 
 // Simulate fetching data - Replace this with your actual data fetching logic
 async function getClients(): Promise<Client[]> {
-  // Simple Dummy Data matching the Client type:
+  console.log("Fetching client data...");
+  // Reduced Dummy Data matching the Client type:
   return [
     {
       id: "CLI-001",
@@ -26,7 +27,7 @@ async function getClients(): Promise<Client[]> {
       contact: "987-654-3210",
       last_visit: "2024-07-10",
     },
-     {
+    {
       id: "CLI-003",
       first_name: "Peter",
       last_name: "Jones",
@@ -34,29 +35,69 @@ async function getClients(): Promise<Client[]> {
       contact: "555-123-4567",
       last_visit: "2024-06-20",
     },
-     {
+    {
       id: "CLI-004",
       first_name: "Alice",
       last_name: "Brown",
       email: "alice.b@mail.org",
       contact: "111-222-3333",
       last_visit: "2024-07-18",
-    },
-    // Add more dummy clients if needed
+    }
   ];
 }
 
-// This is a Server Component by default in Next.js App Router
-export default async function DashboardClientsPage() { // Renamed component slightly for clarity
-  // Fetch the data
-  const clientData = await getClients();
+export default function DashboardClientsPage() {
+  const [clientData, setClientData] = useState<Client[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Render the DataTableContent component, passing data and columns
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      const data = await getClients();
+      setClientData(data);
+      setIsLoading(false);
+    };
+    loadData();
+  }, []);
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm) {
+      return clientData;
+    }
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    return clientData.filter(client =>
+      Object.values(client).some(value =>
+        String(value).toLowerCase().includes(lowerCaseSearchTerm)
+      )
+    );
+  }, [clientData, searchTerm]);
+
   return (
-    // Using a fragment here, assuming layout provides container/padding
-    <Suspense fallback={<TableSkeleton />}>
+    <div className="space-y-4" >
+      {/* Add Search Input - Aligned Right */}
+      <div className="flex items-center justify-end pr-4 ">
+         <Input
+           placeholder="Search clients... (any field)"
+           value={searchTerm}
+           onChange={(event) => setSearchTerm(event.target.value)}
+           className="max-w-sm"
+         />
+       </div>
 
-      <DataTableContent columns={columns} data={clientData} />
-    </Suspense>
+      {/* Render Table - Use Suspense or handle loading state */}
+      {isLoading ? (
+         <TableSkeleton />
+      ) : (
+         <DataTableContent columns={columns} data={filteredData} />
+      )}
+
+      {/* Alternative with Suspense (if DataTableContent supports it) */}
+      {/*
+      <Suspense fallback={<TableSkeleton />}>
+        <DataTableContent columns={columns} data={filteredData} />
+      </Suspense>
+      */}
+    </div>
   );
 }
