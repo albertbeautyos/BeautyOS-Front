@@ -118,7 +118,8 @@ export default function DashboardClientsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getClients();
+      // const data = await getClients();
+      const data = await getFakeClients();
       setClientData(data);
     } catch (err) {
       console.error("Failed to load client data:", err);
