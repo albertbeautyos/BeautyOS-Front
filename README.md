@@ -41,8 +41,7 @@ This project is the frontend application for BeatyOS, built with Next.js. It fea
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repository-url> # Replace with the actual URL
-    cd beatyos-front
+    git clone https://github.com/albertbeautyos/BeautyOS-Front
     ```
 2.  **Install dependencies:**
     ```bash
@@ -146,4 +145,3 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ---
 
-This README provides a comprehensive overview. Remember to replace `<your-repository-url>` with the actual link.
