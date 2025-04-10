@@ -6,16 +6,18 @@ import { DataTableColumnHeader } from "@/components/data-table-column-header"
 import { DataTableRowActions } from "@/components/data-table-row-actions"
 import { NewClientData } from "@/services/clients"
 
-// Define the structure for a client - map API fields if needed
+// Define the structure for a client - Updated fields
 export type Client = {
-  id: string // Assuming ID comes from API
+  id: string
   first_name: string
   last_name: string
   email: string
-  contact: string
-  last_visit: string | Date // Assuming date can be string or Date object
-  // Add other fields matching your actual API response
-  // Potentially add fields from NewClientData if they are returned by GET /clients
+  contact: string // Renaming to phone if necessary should happen in data fetching/mapping
+  // Removed last_visit
+  visits: number
+  rating: number // Assuming a scale like 0-5
+  points: number
+  // Keep optional fields if they might still exist in API response or AddClientForm
   gender?: string
   pronouns?: string
   referredBy?: string
@@ -39,7 +41,7 @@ declare module '@tanstack/react-table' {
   }
 }
 
-// Define the columns based on the Client type
+// Define the columns based on the Updated Client type
 export const columns: ColumnDef<Client>[] = [
   {
     id: "select",
@@ -66,28 +68,17 @@ export const columns: ColumnDef<Client>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "id",
+    id: "name",
+    accessorFn: row => `${row.first_name} ${row.last_name}`,
     header: ({ column }) => (
-       <DataTableColumnHeader column={column} title="ID" />
-    ),
-    cell: ({ row }) => <div className="w-[80px]">{row.getValue("id")}</div>,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "first_name",
-     header: ({ column }) => (
-       <DataTableColumnHeader column={column} title="First Name" />
+       <DataTableColumnHeader column={column} title="Name" />
      ),
-    cell: ({ row }) => <div>{row.getValue("first_name")}</div>,
-    filterFn: (row, id, value) => value.includes(row.getValue(id)),
-  },
-   {
-    accessorKey: "last_name",
-     header: ({ column }) => (
-       <DataTableColumnHeader column={column} title="Last Name" />
-     ),
-    cell: ({ row }) => <div>{row.getValue("last_name")}</div>,
-    filterFn: (row, id, value) => value.includes(row.getValue(id)),
+    cell: ({ row }) => <div>{`${row.original.first_name} ${row.original.last_name}`}</div>,
+    filterFn: (row, id, value) => {
+        const name = `${row.original.first_name} ${row.original.last_name}`;
+        return name.toLowerCase().includes(String(value).toLowerCase());
+    },
+    enableSorting: true,
   },
   {
     accessorKey: "email",
@@ -95,28 +86,39 @@ export const columns: ColumnDef<Client>[] = [
        <DataTableColumnHeader column={column} title="Email" />
      ),
     cell: ({ row }) => <div>{row.getValue("email")}</div>,
-     filterFn: (row, id, value) => value.includes(row.getValue(id)),
+     filterFn: (row, id, value) => String(row.getValue(id)).toLowerCase().includes(String(value).toLowerCase()),
   },
    {
+    // Keep accessorKey as 'contact' if that's the field name in the data
     accessorKey: "contact",
      header: ({ column }) => (
-       <DataTableColumnHeader column={column} title="Contact" />
+       <DataTableColumnHeader column={column} title="Phone" /> // Changed header title
      ),
     cell: ({ row }) => <div>{row.getValue("contact")}</div>,
   },
   {
-    accessorKey: "last_visit",
+    accessorKey: "visits",
     header: ({ column }) => (
-       <DataTableColumnHeader column={column} title="Last Visit" />
-     ),
-    cell: ({ row }) => {
-       const value = row.getValue("last_visit")
-       // Basic date formatting - consider using a library like date-fns for robustness
-       const formattedDate = value instanceof Date ? value.toLocaleDateString() : String(value)
-      return <div>{formattedDate}</div>
-    },
+      <DataTableColumnHeader column={column} title="Visits" />
+    ),
+    cell: ({ row }) => <div className="text-center">{row.getValue("visits")}</div>,
   },
-   {
+  {
+    accessorKey: "rating",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Rating" />
+    ),
+    // Format rating (e.g., show one decimal place)
+    cell: ({ row }) => <div className="text-center">{(row.getValue("rating") as number).toFixed(1)}</div>,
+  },
+  {
+    accessorKey: "points",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Points" />
+    ),
+    cell: ({ row }) => <div className="text-center">{row.getValue("points")}</div>,
+  },
+  {
      id: "actions",
      cell: ({ row, table }) => (
        <DataTableRowActions
