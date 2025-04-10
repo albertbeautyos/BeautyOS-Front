@@ -23,6 +23,7 @@ export type Client = {
   referredBy?: string
   clientType?: string
   birthday?: Date | string
+  last_visit?: Date | string
   address?: {
     street?: string
     city?: string
