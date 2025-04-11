@@ -11,15 +11,17 @@ import {
 } from "@/components/ui/sidebar"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 
-export default function DashboardLayout({children}:{children: React.ReactNode}) {
+export default function ProtectedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+
   const pathname = usePathname();
 
   const pageTitle = useMemo(() => {
     const parts = pathname.split('/');
-    if (parts.length > 2 && parts[1] === 'dashboard' && parts[2]) {
-       return parts[2].charAt(0).toUpperCase() + parts[2].slice(1);
-    }
-    return 'Dashboard';
+    return parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
   }, [pathname]);
 
   return (

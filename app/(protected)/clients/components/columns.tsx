@@ -143,7 +143,7 @@ export const columns: ColumnDef<Client>[] = [
       mobileHidden: true, // Hide on mobile
     },
   },
-  {
+   {
      id: "actions",
      cell: ({ row, table }) => (
        <DataTableRowActions

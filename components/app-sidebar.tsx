@@ -3,7 +3,8 @@
 import * as React from "react"
 import Image from 'next/image'
 import {
-Users
+Users,
+PanelLeftDashed,
 } from "lucide-react"
 import { type VariantProps } from "class-variance-authority"
 
@@ -49,8 +50,20 @@ const data = {
   ],
   navMain: [
     {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon:   PanelLeftDashed,
+      isActive: true,
+    },
+    {
       title: "Clients",
-      url: "/dashboard/clients",
+      url: "/clients",
+      icon:   Users,
+      isActive: true,
+    },
+    {
+      title: "Users",
+      url: "/users",
       icon:   Users,
       isActive: true,
     }

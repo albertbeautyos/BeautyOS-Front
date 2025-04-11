@@ -84,8 +84,12 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ```
 .
 ├── app/                  # Next.js App Router directory
-│   ├── (login)/          # Login page route group
-│   ├── dashboard/        # Dashboard route group
+│   ├── login/          # Login page route group
+│   ├── (protected)/      # Protected routes requiring authentication (e.g., dashboard sections)
+│   │   ├── clients/        # Example: Client management section
+│   │   ├── users/       # Example: Users section
+│   │   ├── dashboard/       # Example: Dashboard section
+│   │   └── layout.tsx      # Layout for protected routes (includes Sidebar, Header)
 │   ├── legal/            # Legal pages route group
 │   ├── globals.css       # Global styles
 │   ├── layout.tsx        # Root layout
@@ -144,4 +148,3 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - **shadcn/ui components (`components/ui/`):** Various UI primitives used throughout the application.
 
 ---
-
