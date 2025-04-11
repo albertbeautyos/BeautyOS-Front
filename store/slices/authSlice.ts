@@ -1,18 +1,12 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { sendLoginCode, verifyOtpAndLogin, logout as logoutService } from '@/services/auth';
+import { sendLoginCode, verifyOtpAndLogin, logout as logoutService, LoginResponse } from '@/services/auth'; // Import LoginResponse type
+import { getCurrentUser, UserData as FetchedUserData } from '@/services/user'; // Import user service and type
 import { LocalStorageManager } from "@/helpers/localStorageManager";
 import { SessionStorageManager } from "@/helpers/sessionStorageManager";
 import { RootState } from '../store'; // Import RootState type from store
 
-// Define the structure of the user info we expect after login
-// Derived from LoginResponse in services/auth.ts, excluding accessToken
-interface UserInfo {
-  id: string;
-  phone: string;
-  email: string;
-  role: string[];
-  status: string;
-}
+// User info type directly uses the one from the service
+type UserInfo = FetchedUserData;
 
 // Define the structure for the verifyOtp thunk argument
 interface VerifyOtpPayload {
@@ -25,9 +19,10 @@ interface VerifyOtpPayload {
 interface AuthState {
   loading: 'idle' | 'pending';
   error: string | null;
-  userInfo: UserInfo | null;
+  userInfo: UserInfo | null; // Use the type alias
   loginAttemptId: string | null; // Store the ID between steps
   isAuthenticated: boolean;
+  initialCheckComplete: boolean; // Ensure this is not optional
 }
 
 // Initial state
@@ -37,9 +32,12 @@ const initialState: AuthState = {
   userInfo: null,
   loginAttemptId: null,
   isAuthenticated: false,
+  initialCheckComplete: false,
 };
 
-// Async Thunks
+// --- Async Thunks ---
+
+// Send Login Code Thunk
 export const sendCodeThunk = createAsyncThunk(
   'auth/sendCode',
   async (emailOrPhone: string, { rejectWithValue }) => {
@@ -47,38 +45,73 @@ export const sendCodeThunk = createAsyncThunk(
       const loginId = await sendLoginCode(emailOrPhone);
       return loginId;
     } catch (error) {
-      // Type check the error
       const message = error instanceof Error ? error.message : 'Failed to send code';
       return rejectWithValue(message);
     }
   }
 );
 
-export const verifyOtpThunk = createAsyncThunk(
+// Verify OTP Thunk
+export const verifyOtpThunk = createAsyncThunk<LoginResponse, VerifyOtpPayload>(
   'auth/verifyOtp',
-  async ({ loginAttemptId, otp, rememberMe }: VerifyOtpPayload, { rejectWithValue }) => {
+  async ({ loginAttemptId, otp, rememberMe }, { rejectWithValue }) => {
     try {
       const response = await verifyOtpAndLogin(loginAttemptId, otp);
 
-      if (rememberMe) {
-        LocalStorageManager.set('accessToken', response.accessToken);
+      // Determine storage based on rememberMe
+      const storage = rememberMe ? LocalStorageManager : SessionStorageManager;
+      storage.set('accessToken', response.accessToken);
+      // Safely handle refreshToken - check if it exists on the response object
+      if (response.refreshToken) {
+          storage.set('refreshToken', response.refreshToken);
       }
+
+      // Return the full response, the reducer will extract user info
       return response;
     } catch (error) {
-       // Type check the error
       const message = error instanceof Error ? error.message : 'Failed to verify code';
       return rejectWithValue(message);
     }
   }
 );
 
+// Fetch Current User Thunk
+export const fetchCurrentUserThunk = createAsyncThunk<UserInfo>(
+  'auth/fetchCurrentUser',
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = LocalStorageManager.get('accessToken') || SessionStorageManager.get('accessToken');
+      if (!token) {
+         console.log('fetchCurrentUserThunk: No token found.')
+         return rejectWithValue('No token found, cannot fetch user.');
+      }
+      console.log('fetchCurrentUserThunk: Token found, attempting to fetch user...')
+      const userData = await getCurrentUser();
+       console.log('fetchCurrentUserThunk: User data fetched successfully.', userData)
+      return userData;
+    } catch (error) {
+       console.error('fetchCurrentUserThunk: Error fetching user:', error)
+      const message = error instanceof Error ? error.message : 'Failed to fetch current user';
+      if (message.includes('(401)')) {
+          console.log('fetchCurrentUserThunk: Received 401, clearing tokens.')
+          LocalStorageManager.remove('accessToken');
+          LocalStorageManager.remove('refreshToken');
+          SessionStorageManager.remove('accessToken');
+          SessionStorageManager.remove('refreshToken');
+      }
+      return rejectWithValue(message);
+    }
+  }
+);
+
+
+// Logout Thunk
 export const logoutThunk = createAsyncThunk(
   'auth/logout',
   async (_, { rejectWithValue }) => {
     try {
-        logoutService();
+        logoutService(); // This service should handle token removal
     } catch (error) {
-        // Type check the error
         const message = error instanceof Error ? error.message : 'Logout cleanup failed';
         console.error("Client-side logout cleanup error:", message, error);
         return rejectWithValue(message + ', but state reset initiated.');
@@ -86,104 +119,117 @@ export const logoutThunk = createAsyncThunk(
   }
 );
 
-// Auth Slice
+// --- Auth Slice ---
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // Potential synchronous reducers like clearError, etc.
     clearAuthError(state) {
       state.error = null;
     },
-    // Could add a reducer to check initial auth state from storage on app load
-    // checkInitialAuthState(state) { ... }
+    setInitialAuthState(state, action: PayloadAction<{ isAuthenticated: boolean; userInfo: UserInfo | null }>) {
+        state.isAuthenticated = action.payload.isAuthenticated;
+        state.userInfo = action.payload.userInfo;
+        state.initialCheckComplete = true;
+        state.loading = 'idle';
+    },
   },
   extraReducers: (builder) => {
     builder
-      // Send Code
+      // Send Code Cases
       .addCase(sendCodeThunk.pending, (state) => {
         state.loading = 'pending';
         state.error = null;
-        state.loginAttemptId = null; // Clear previous attempts
+        state.loginAttemptId = null;
       })
       .addCase(sendCodeThunk.fulfilled, (state, action: PayloadAction<string>) => {
         state.loading = 'idle';
-        state.loginAttemptId = action.payload; // Store the received ID
+        state.loginAttemptId = action.payload;
       })
       .addCase(sendCodeThunk.rejected, (state, action) => {
         state.loading = 'idle';
         state.error = action.payload as string || 'Unknown error sending code';
       })
-      // Verify OTP
+      // Verify OTP Cases
       .addCase(verifyOtpThunk.pending, (state) => {
         state.loading = 'pending';
         state.error = null;
       })
-      .addCase(verifyOtpThunk.fulfilled, (state, action: PayloadAction<UserInfo & { accessToken: string }>) => {
+      .addCase(verifyOtpThunk.fulfilled, (state, action: PayloadAction<LoginResponse>) => {
         state.loading = 'idle';
         state.isAuthenticated = true;
+        // Extract user info from the LoginResponse payload
         state.userInfo = {
-             id: action.payload.id,
-             phone: action.payload.phone,
-             email: action.payload.email,
-             role: action.payload.role,
-             status: action.payload.status,
+            id: action.payload.id,
+            firstName: action.payload.firstName,
+            lastName: action.payload.lastName,
+            username: action.payload.username,
+            profileImage: action.payload.profileImage,
+            email: action.payload.email,
+            phone: action.payload.phone,
+            gender: action.payload.gender,
+            pronouns: action.payload.pronouns,
+            level: action.payload.level,
+            services: action.payload.services,
+            rating: action.payload.rating,
+            birthday: action.payload.birthday,
+            address: action.payload.address,
+            role: action.payload.role,
+            status: action.payload.status,
         };
-        state.loginAttemptId = null; // Clear attempt ID after success
+        state.loginAttemptId = null;
         state.error = null;
+        state.initialCheckComplete = true;
       })
       .addCase(verifyOtpThunk.rejected, (state, action) => {
         state.loading = 'idle';
         state.isAuthenticated = false;
         state.userInfo = null;
         state.error = action.payload as string || 'Unknown error verifying code';
+        state.initialCheckComplete = true;
       })
-      // Logout
+       // Fetch Current User Cases
+      .addCase(fetchCurrentUserThunk.pending, (state) => {
+          state.loading = 'pending';
+          state.error = null;
+      })
+      .addCase(fetchCurrentUserThunk.fulfilled, (state, action: PayloadAction<UserInfo>) => {
+          state.loading = 'idle';
+          state.isAuthenticated = true;
+          state.userInfo = action.payload; // Payload is already UserInfo
+          state.error = null;
+          state.initialCheckComplete = true;
+      })
+      .addCase(fetchCurrentUserThunk.rejected, (state, action) => {
+          state.loading = 'idle';
+          state.isAuthenticated = false;
+          state.userInfo = null;
+          if (action.payload !== 'No token found, cannot fetch user.') {
+              state.error = action.payload as string || 'Failed to fetch user data';
+          }
+          state.initialCheckComplete = true;
+      })
+      // Logout Cases
        .addCase(logoutThunk.pending, (state) => {
-           // Optional: Show loading state during logout? Usually fast enough not to.
            state.loading = 'pending';
        })
       .addCase(logoutThunk.fulfilled, (state) => {
-        // Reset entire state to initial on successful logout cleanup
         return initialState;
       })
       .addCase(logoutThunk.rejected, (state, action) => {
          console.warn("Logout rejected action payload:", action.payload)
-         // Reset state even if cleanup had minor issues
          return { ...initialState, error: action.payload as string || 'Logout failed' };
       });
   },
 });
 
 // Export actions and reducer
-export const { clearAuthError } = authSlice.actions;
+export const { clearAuthError, setInitialAuthState } = authSlice.actions;
 export default authSlice.reducer;
 
-// Selectors
-/**
- * Selector to get the user information from the auth state.
- * @param state The root state of the Redux store.
- * @returns The user information object or null if not authenticated.
- */
+// --- Selectors ---
 export const selectUserInfo = (state: RootState) => state.auth.userInfo;
-
-/**
- * Selector to get the authentication status.
- * @param state The root state of the Redux store.
- * @returns True if the user is authenticated, false otherwise.
- */
 export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated;
-
-/**
- * Selector to get the loading status of the auth slice.
- * @param state The root state of the Redux store.
- * @returns The current loading status ('idle' or 'pending').
- */
 export const selectAuthLoading = (state: RootState) => state.auth.loading;
-
-/**
- * Selector to get any authentication error message.
- * @param state The root state of the Redux store.
- * @returns The error message string or null if no error.
- */
 export const selectAuthError = (state: RootState) => state.auth.error;
+export const selectInitialCheckComplete = (state: RootState) => state.auth.initialCheckComplete;

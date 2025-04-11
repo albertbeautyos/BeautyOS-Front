@@ -1,7 +1,7 @@
 "use client"
 
-import { usePathname } from 'next/navigation';
-import { useMemo } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useMemo } from 'react';
 import { AppSidebar } from "@/components/app-sidebar"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -10,6 +10,16 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+// Redux imports
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch } from '@/store/store';
+import {
+    fetchCurrentUserThunk,
+    selectIsAuthenticated,
+    selectInitialCheckComplete,
+    selectAuthLoading,
+} from '@/store/slices/authSlice';
+import { Loader2 } from 'lucide-react'; // Example loading icon
 
 export default function ProtectedLayout({
   children,
@@ -18,12 +28,58 @@ export default function ProtectedLayout({
 }) {
 
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+
+  // Get auth state from Redux
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const initialCheckComplete = useSelector(selectInitialCheckComplete);
+  const loading = useSelector(selectAuthLoading);
 
   const pageTitle = useMemo(() => {
-    const parts = pathname.split('/');
-    return parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
+    const parts = pathname.split('/').filter(part => part !== '');
+    if (parts.length > 0 && parts[0]) {
+       const firstSegment = parts[0];
+       return firstSegment.charAt(0).toUpperCase() + firstSegment.slice(1);
+    }
+    return 'Dashboard'; // Default title if no segment found
   }, [pathname]);
 
+  // Effect to check authentication status on initial load
+  useEffect(() => {
+    if (!initialCheckComplete) {
+        console.log("ProtectedLayout: Initial check not complete, dispatching fetchCurrentUserThunk...");
+        dispatch(fetchCurrentUserThunk());
+    }
+  }, [dispatch, initialCheckComplete]);
+
+  // Effect to handle redirection if not authenticated after check
+  useEffect(() => {
+    console.log(`ProtectedLayout: Auth state change check - initialCheckComplete: ${initialCheckComplete}, loading: ${loading}, isAuthenticated: ${isAuthenticated}`);
+    // Only redirect if the check is complete, loading is idle, and user is not authenticated.
+    if (initialCheckComplete && loading === 'idle' && !isAuthenticated) {
+        console.log("ProtectedLayout: Redirecting to /login...");
+        router.replace('/login');
+    }
+  }, [isAuthenticated, initialCheckComplete, loading, router]);
+
+  // Show loading state while the initial check is running
+  if (!initialCheckComplete || loading === 'pending') {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <span className="sr-only">Loading...</span>
+      </div>
+    );
+  }
+
+  // If check is complete but user is not authenticated, render null
+  // while the redirect effect takes place to avoid flashing protected content.
+  if (!isAuthenticated) {
+      return null;
+  }
+
+  // Render the protected layout if authenticated
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -39,6 +95,7 @@ export default function ProtectedLayout({
           </div>
           <div className="ml-auto mr-4 flex items-center gap-2">
             <ThemeToggle />
+            {/* Add User Profile/Logout Button Here */}
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

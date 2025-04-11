@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { LocalStorageManager } from '@/helpers/localStorageManager'; // Import the specific class
+import { SessionStorageManager } from '@/helpers/sessionStorageManager';
 
 // Define interfaces for token structure and refresh response
 interface Tokens {
@@ -25,11 +26,11 @@ const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
 const getAccessToken = (): string | null => {
-  return LocalStorageManager.get(ACCESS_TOKEN_KEY);
+  return LocalStorageManager.get(ACCESS_TOKEN_KEY) || SessionStorageManager.get(ACCESS_TOKEN_KEY);
 };
 
 const getRefreshToken = (): string | null => {
-  return LocalStorageManager.get(REFRESH_TOKEN_KEY);
+  return LocalStorageManager.get(REFRESH_TOKEN_KEY) || SessionStorageManager.get(REFRESH_TOKEN_KEY);
 };
 
 const setTokens = (tokens: Tokens): void => {
