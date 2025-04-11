@@ -26,6 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { DataTableColumnHeader } from "@/components/data-table-column-header"
 import { DataTableRowActions } from "@/components/data-table-row-actions"
 import { DataTablePagination } from "./data-table-pagination"
+import { DataTableColumnToggle } from "./data-table-column-toggle"
 
 // Update Props Interface to be generic and accept columns/data and meta
 interface DataTableProps<TData, TValue> {
@@ -77,6 +78,12 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-1 items-center space-x-2">
+          {/* Add filtering components here later if needed */}
+        </div>
+        <DataTableColumnToggle table={table} />
+      </div>
 
        <div className="rounded-md border">
         <Table>
