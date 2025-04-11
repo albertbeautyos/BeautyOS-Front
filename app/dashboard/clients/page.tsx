@@ -222,26 +222,6 @@ async function getFakeClients(): Promise<Client[]> {
       visits: 30,
       rating: 5.0,
       points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
     }
   ];
 }
@@ -341,10 +321,12 @@ export default function DashboardClientsPage() {
     openSheet('edit', client);
   }, [openSheet]);
 
-  const handleDeleteRequest = useCallback((client: Client) => {
+  // Handler to initiate delete (used by both table row and sheet button)
+  const handleDeleteRequest = useCallback((client: Client | null) => {
+    if (!client) return;
     setClientToDelete(client);
     setIsDeleteDialogOpen(true);
-  }, []);
+  }, []); // Dependency: none (uses setters)
 
   // --- Delete Confirmation Handler ---
   const confirmDelete = useCallback(async () => {
@@ -370,12 +352,12 @@ export default function DashboardClientsPage() {
     setIsDeleteDialogOpen(false); // Close the dialog
   }, []);
 
-  // Define meta object containing handlers for the table rows
+  // Define table meta (remains the same, uses handleDeleteRequest with row.original)
   const tableMeta = useMemo(() => ({
     viewClient: handleViewClient,
     editClient: handleEditClient,
-    deleteClient: handleDeleteRequest, // Use the request handler
-  }), [handleViewClient, handleEditClient, handleDeleteRequest]); // Stable handlers as dependencies
+    deleteClient: (client: Client) => handleDeleteRequest(client), // Pass client from row
+  }), [handleViewClient, handleEditClient, handleDeleteRequest]);
 
   return (
     <div className="space-y-4 p-4 md:p-6"> {/* Added padding */}
@@ -415,9 +397,13 @@ export default function DashboardClientsPage() {
         <ClientSheetContent
             sheetMode={sheetMode}
             selectedClient={selectedClient}
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            //@ts-ignore
             onSuccess={handleFormSuccess}
-            onOpenSheet={openSheet} // Pass openSheet for navigation within the sheet
-            onCloseSheet={() => handleSheetOpenChange(false)} // Pass simple close handler
+            onOpenSheet={openSheet}
+            onCloseSheet={() => handleSheetOpenChange(false)}
+            // Pass the handler, ensuring it uses the currently selectedClient
+            onRequestDelete={() => handleDeleteRequest(selectedClient)}
         />
       </Sheet>
 

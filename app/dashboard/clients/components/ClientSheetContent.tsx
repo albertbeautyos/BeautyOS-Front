@@ -9,9 +9,11 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { AddClientForm } from './add-client-form';
-import { Client } from "./columns";
-import { NewClientData } from '@/services/clients';
-import { Copy, Mail, Phone, Bell, Instagram, Twitter, Edit } from 'lucide-react';
+// Import Client from columns with an alias
+import { Client as TableClient } from "./columns";
+// Import types from the service
+import { NewClientData, Client as ServiceClient } from '@/services/clients';
+import { Copy, Mail, Phone, Bell, Instagram, Twitter, Edit, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -24,14 +26,16 @@ type SheetMode = 'add' | 'view' | 'edit' | null;
 // Interface for the component props
 interface ClientSheetContentProps {
     sheetMode: SheetMode;
-    selectedClient: Client | null;
-    onSuccess: (formData: NewClientData | Client) => void;
-    onOpenSheet: (mode: SheetMode, client: Client | null) => void;
+    selectedClient: TableClient | null; // Use TableClient alias
+    onSuccess: (formData: NewClientData | ServiceClient) => void; // Use ServiceClient and NewClientData
+    onOpenSheet: (mode: SheetMode, client: TableClient | null) => void; // Use TableClient alias
     onCloseSheet: () => void;
+    onRequestDelete?: () => void; // Added prop for delete request from sheet
 }
 
 // Utility function to map Client data to form data structure
-const mapClientToFormData = (client: Client | null): Partial<NewClientData> | undefined => {
+// Input should be TableClient from the table data
+const mapClientToFormData = (client: TableClient | null): Partial<NewClientData> | undefined => {
     if (!client) return undefined;
     return {
         firstName: client.first_name,
@@ -59,15 +63,16 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
     selectedClient,
     onSuccess,
     onOpenSheet,
-    onCloseSheet
+    onCloseSheet,
+    onRequestDelete
 }) => {
     const [selectedSidebarTab, setSelectedSidebarTab] = useState<string>('DASH'); // Default sidebar tab
 
-    // Static Data Helper - Remains here as it uses selectedClient
+    // Static Data Helper - Remains here as it uses selectedClient (TableClient)
     const StaticClientViewData = useMemo(() => ({
-        points: 12,
-        visits: 126,
-        rating: 4.9,
+        points: selectedClient?.points ?? 0,
+        visits: selectedClient?.visits ?? 0,
+        rating: selectedClient?.rating ?? 0,
         ratingCount: 84,
         showRate: 100,
         avgVisitWeeks: 4.5,
@@ -88,35 +93,33 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
     // Determines the title based on the current mode
     const getSheetTitle = () => {
         switch (sheetMode) {
-            case 'add': return "Add New Client";
-            case 'view': return "View Client Details";
-            case 'edit': return "Edit Client Details";
-            default: return "";
+            case 'add': return 'Add New Client';
+            case 'view': return selectedClient ? `${selectedClient.first_name} ${selectedClient.last_name}` : 'Client Details';
+            case 'edit': return selectedClient ? `Editing ${selectedClient.first_name} ${selectedClient.last_name}` : 'Edit Client';
+            default: return 'Client Information';
         }
-    }
+    };
 
-    // Handles cancel action, switching to view mode or closing the sheet
+    // Handler for canceling - Switches back to view if editing, otherwise closes
     const handleCancelEdit = () => {
-      if (sheetMode === 'edit') {
+      if (sheetMode === 'edit' || sheetMode === 'view' && selectedClient) {
         onOpenSheet('view', selectedClient); // Switch back to view mode
       } else {
-        onCloseSheet(); // Close sheet if cancelling 'add'
+        onCloseSheet(); // Close sheet if cancelling 'add' or if something unexpected happens
       }
     };
+
+    // Dynamically determine the sheet title
+    const sheetTitle = getSheetTitle();
 
     return (
         <SheetContent className={cn(
             "w-full p-0 flex flex-col overflow-hidden",
-            // Dynamically adjust width based on mode
             (sheetMode === 'view' || sheetMode === 'edit') ? "sm:max-w-4xl" : "sm:max-w-md"
         )}>
-            {/* Conditional Layout: Two columns for view/edit, single for add */}
             {(sheetMode === 'view' || sheetMode === 'edit') && selectedClient ? (
-                // --- Two Column Layout ---
                 <div className="flex flex-row w-full h-full">
-                    {/* Left Column: Static Info + Form */}
                     <div className="flex flex-col w-1/2 border-r overflow-hidden">
-                        {/* Header for View/Edit Mode */}
                         <SheetHeader className="p-2.5 border-b bg-muted/30 space-y-2 flex-shrink-0">
                             <div className="flex items-center gap-2">
                                 <Avatar className="h-10 w-10 border">
@@ -132,7 +135,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                                         <span className="flex items-center gap-0.5"><StarIcon className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />{StaticClientViewData.rating}({StaticClientViewData.ratingCount})</span>
                                     </div>
                                 </div>
-                                {/* Action Buttons */}
+                                {/* Action Buttons - Delete Button Removed */}
                                 <div className="flex justify-end gap-1 pr-8" >
                                     {sheetMode === 'view' && (
                                         <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => onOpenSheet('edit', selectedClient)}>
@@ -142,6 +145,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                                     <Button size="icon" variant="outline" className="h-6 w-6"><Mail className="h-3.5 w-3.5" /><span className="sr-only">Email</span></Button>
                                     <Button size="icon" variant="outline" className="h-6 w-6"><Phone className="h-3.5 w-3.5" /><span className="sr-only">Call</span></Button>
                                     <Button size="icon" variant="outline" className="h-6 w-6"><Bell className="h-3.5 w-3.5" /><span className="sr-only">Notifications</span></Button>
+                                     {/* --- Delete Button Removed From Header --- */}
                                 </div>
                             </div>
                             {/* Static Stats Grid */}
@@ -154,37 +158,53 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
 
                         {/* Scrollable Content Area */}
                         <div className="flex-1 overflow-y-auto p-3">
-                            {/* Static View Elements Displayed Above the Form */}
-                            <div className="space-y-3 mb-3">
-                                {/* Contact Info */}
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <Label className="text-[10px] text-muted-foreground">Contact</Label>
-                                        <div className="flex items-center gap-1 mt-0"><p className="text-[11px] truncate">{selectedClient.email}</p><Button variant="ghost" size="icon" className="h-4 w-4"><Copy className="h-2 w-2" /></Button></div>
-                                        <div className="flex items-center gap-1 mt-0"><p className="text-[11px]">{selectedClient.contact}</p><Button variant="ghost" size="icon" className="h-4 w-4"><Copy className="h-2 w-2" /></Button></div>
+                            {/* Static View Elements Displayed Above the Form (Only in View Mode) */}
+                            {sheetMode === 'view' && (
+                                <div className="space-y-3 mb-3">
+                                    {/* Contact Info */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <Label className="text-[10px] text-muted-foreground">Contact</Label>
+                                            <div className="flex items-center gap-1 mt-0"><p className="text-[11px] truncate">{selectedClient.email}</p><Button variant="ghost" size="icon" className="h-4 w-4"><Copy className="h-2 w-2" /></Button></div>
+                                            <div className="flex items-center gap-1 mt-0"><p className="text-[11px]">{selectedClient.contact}</p><Button variant="ghost" size="icon" className="h-4 w-4"><Copy className="h-2 w-2" /></Button></div>
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px] text-muted-foreground">Last Visited</Label>
+                                            <p className="text-[11px] mt-0">{StaticClientViewData.lastVisited}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <Label className="text-[10px] text-muted-foreground">Last Visited</Label>
-                                        <p className="text-[11px] mt-0">{StaticClientViewData.lastVisited}</p>
-                                    </div>
+                                    {/* Hair Tags */}
+                                    <div><div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsHair.map((tag, index) => (<Badge key={`hair-${index}`} variant="secondary" className="font-normal text-[10px] px-1 py-0 leading-tight">{tag}</Badge>))}</div></div>
+                                    {/* Salon Tags */}
+                                    <div><div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsSalon.map((tag, index) => (<Badge key={`salon-${index}`} variant="secondary" className="font-normal text-[10px] px-1 py-0 leading-tight">{tag}</Badge>))}</div></div>
+                                    <Separator className="my-2"/>
                                 </div>
-                                {/* Hair Tags */}
-                                <div><div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsHair.map((tag, index) => (<Badge key={`hair-${index}`} variant="secondary" className="font-normal text-[10px] px-1 py-0 leading-tight">{tag}</Badge>))}</div></div>
-                                {/* Salon Tags */}
-                                <div><div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsSalon.map((tag, index) => (<Badge key={`salon-${index}`} variant="secondary" className="font-normal text-[10px] px-1 py-0 leading-tight">{tag}</Badge>))}</div></div>
-                                <Separator className="my-2"/>
-                            </div>
+                            )}
+
+                            {/* Delete Button - Now visible in view mode as well, if onRequestDelete is provided */}
+                            {(sheetMode === 'view' || sheetMode === 'edit') && onRequestDelete && (
+                                <div className="mb-4 flex justify-end"> {/* Wrapper for positioning */}
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={onRequestDelete}
+                                        // Optionally disable if not in edit mode, depending on desired UX
+                                        // disabled={sheetMode !== 'edit'}
+                                    >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                    </Button>
+                                </div>
+                            )}
 
                             {/* The Client Form */}
                             <AddClientForm
-                                key={selectedClient.id || 'view-edit-form'} // Ensures form resets/reinitializes when client changes
+                                key={selectedClient.id || 'view-edit-form'}
                                 initialData={mapClientToFormData(selectedClient)}
                                 isInitiallyEditing={sheetMode === 'edit'}
-                                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                            // @ts-ignore
-                                onSuccess={onSuccess}          // Propagate success callback
+                                onSuccess={onSuccess} // Propagate success callback
                                 onCancelEdit={handleCancelEdit} // Propagate cancel callback
-                                className="mt-4"
+                                className="mt-0"
                             />
                         </div>
                     </div>
@@ -213,7 +233,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                 <>
                     {/* Header for Add Mode */}
                     <SheetHeader className="p-6 border-b">
-                        <SheetTitle>{getSheetTitle()}</SheetTitle>
+                        <SheetTitle>{sheetTitle}</SheetTitle>
                         <SheetDescription>Fill in the details below to add a new client.</SheetDescription>
                     </SheetHeader>
                     {/* Form Area */}
@@ -222,8 +242,6 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                             key={'add-form'} // Unique key for the add form instance
                             initialData={undefined} // No initial data for add mode
                             isInitiallyEditing={true} // Always editing in add mode
-                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                            // @ts-ignore
                             onSuccess={onSuccess } // Propagate success callback
                             onCancelEdit={handleCancelEdit} // Propagate cancel callback
                             className="mt-4"
