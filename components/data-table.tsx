@@ -15,6 +15,8 @@ import {
   getSortedRowModel,
   useReactTable,
   TableMeta,
+  Header,
+  Cell,
 } from "@tanstack/react-table"
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -27,6 +29,7 @@ import { DataTableColumnHeader } from "@/components/data-table-column-header"
 import { DataTableRowActions } from "@/components/data-table-row-actions"
 import { DataTablePagination } from "./data-table-pagination"
 import { DataTableColumnToggle } from "./data-table-column-toggle"
+import { cn } from "@/lib/utils"
 
 // Update Props Interface to be generic and accept columns/data and meta
 interface DataTableProps<TData, TValue> {
@@ -35,6 +38,12 @@ interface DataTableProps<TData, TValue> {
   meta?: TableMeta<TData>
   initialPageSize?: number
 }
+
+// Helper function to check mobile hidden meta
+const isMobileHidden = <TData, TValue>(item: Header<TData, TValue> | Cell<TData, TValue>): boolean => {
+    // Access meta from the column definition
+    return !!item.column.columnDef.meta?.mobileHidden;
+};
 
 // Update DataTable component to use TanStack Table
 export function DataTable<TData, TValue>({
@@ -82,7 +91,10 @@ export function DataTable<TData, TValue>({
         <div className="flex flex-1 items-center space-x-2">
           {/* Add filtering components here later if needed */}
         </div>
-        <DataTableColumnToggle table={table} />
+        {/* Conditionally render column toggle - hide on mobile */}
+        <div className="hidden md:block">
+            <DataTableColumnToggle table={table} />
+        </div>
       </div>
 
        <div className="rounded-md border">
@@ -92,7 +104,13 @@ export function DataTable<TData, TValue>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} colSpan={header.colSpan}>
+                    <TableHead
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      className={cn({
+                        "hidden md:table-cell": isMobileHidden(header),
+                      })}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -113,7 +131,12 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className={cn({
+                        "hidden md:table-cell": isMobileHidden(cell),
+                      })}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
