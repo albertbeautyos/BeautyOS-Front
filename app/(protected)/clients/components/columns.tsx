@@ -155,7 +155,7 @@ export const columns: ColumnDef<Client>[] = [
        />
      ),
      meta: {
-      mobileHidden: true, // Hide on mobile
+      mobileHidden: false
     },
    },
 ]

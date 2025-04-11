@@ -39,7 +39,7 @@ export default function LoginPage() {
       </div>
 
       <footer className="py-4 px-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} BeatyOS. All rights reserved.
+        © {new Date().getFullYear()} BeautyOS. All rights reserved.
       </footer>
     </div>
   )
