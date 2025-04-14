@@ -378,7 +378,7 @@ export default function DashboardClientsPage() {
   }, [handleDeleteRequest, selectedClient]);
 
   return (
-    <div className="space-y-4 p-4 md:p-6"> {/* Added padding */}
+    <div className="space-y-4 sm:p-2 p-4"> {/* Added padding */}
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 py-4">
         <div className="flex-1"></div> {/* Spacer */}

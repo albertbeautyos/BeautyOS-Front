@@ -18,7 +18,7 @@ interface DataTableContentProps {
 
 export function DataTableContent({ columns, data, meta }: DataTableContentProps) {
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+    <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4  pt-0">
       <DataTable columns={columns} data={data} meta={meta} />
     </div>
   )

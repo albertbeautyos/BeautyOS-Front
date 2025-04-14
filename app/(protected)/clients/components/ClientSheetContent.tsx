@@ -13,17 +13,14 @@ import { AddClientForm } from './add-client-form';
 import { Client as TableClient } from "./columns";
 // Import types from the service
 import { NewClientData, Client as ServiceClient } from '@/services/clients';
-import { Copy, Mail, Phone, Bell, Instagram, Twitter, Edit, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { StarIcon } from './StarIcon'; // Import StarIcon from its file
+import { ClientSheetHeaderContent, type SheetMode } from './ClientSheetHeaderContent'; // Import the new component and SheetMode type
 
-type SheetMode = 'add' | 'view' | 'edit' | null;
-
-// Interface for the component props
+// Interface for the main component props
 interface ClientSheetContentProps {
     sheetMode: SheetMode;
     selectedClient: TableClient | null; // Use TableClient alias
@@ -81,11 +78,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
         lastVisited: selectedClient?.last_visit ? new Date(selectedClient.last_visit).toLocaleString() : "N/A",
         tagsHair: ["Hair color", "Haircuts", "Haircuts"], // Example data
         tagsSalon: ["Salon 1", "Salon 2"], // Example data
-        social: [
-            { platform: 'instagram', handle: 'albertmanukyan', value: '4,400', Icon: Instagram },
-            { platform: 'tiktok', handle: 'albert_cit', value: '10,546', Icon: () => <svg>...</svg> }, // Placeholder icon
-            { platform: 'twitter', handle: 'albertoo', value: '437', Icon: Twitter },
-        ],
+
         addressDisplay: selectedClient?.address
             ? `${selectedClient.address.street || ''}, ${selectedClient.address.city || ''} ${selectedClient.address.state || ''}`.trim().replace(/, $/, '')
             : "No Address",
@@ -172,35 +165,13 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                 {/* Mobile View with Tabs */}
                 <div className="flex flex-row w-full h-full sm:flex md:hidden">
                     <div className="flex flex-col w-full h-full">
-                        <SheetHeader className="p-2.5 border-b bg-muted/30 space-y-2 flex-shrink-0">
-                            <div className="flex items-center gap-2">
-                                <Avatar className="h-12 w-12 border">
-                                    <AvatarImage src={undefined} alt={`${selectedClient.first_name} ${selectedClient.last_name}`} />
-                                    <AvatarFallback className="text-lg">{selectedClient.first_name?.[0]}{selectedClient.last_name?.[0]}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                    <SheetTitle className="text-lg font-semibold leading-tight">{selectedClient.first_name} {selectedClient.last_name}</SheetTitle>
-                                    <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground mt-0.5">
-                                        <span>{StaticClientViewData.points} PTS</span><span className="mx-0.5">&bull;</span>
-                                        <span>{StaticClientViewData.visits} VST</span><span className="mx-0.5">&bull;</span>
-                                        <span className="flex items-center gap-0.5"><StarIcon className="w-3 h-3 fill-yellow-400 text-yellow-400" />{StaticClientViewData.rating}({StaticClientViewData.ratingCount})</span>
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-1 pr-8" >
-                                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => { onChangeMode('edit', selectedClient); setSelectedMobileTab('INFO'); }}>
-                                        <Edit className="h-4 w-4" /><span className="sr-only">Edit</span>
-                                    </Button>
-                                    <Button size="icon" variant="outline" className="h-8 w-8"><Mail className="h-4 w-4" /><span className="sr-only">Email</span></Button>
-                                    <Button size="icon" variant="outline" className="h-8 w-8"><Phone className="h-4 w-4" /><span className="sr-only">Call</span></Button>
-                                    <Button size="icon" variant="outline" className="h-8 w-8"><Bell className="h-4 w-4" /><span className="sr-only">Notifications</span></Button>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-1 text-center text-xs">
-                                <div className="bg-background p-1 rounded border"><p className="font-semibold text-sm">{StaticClientViewData.showRate}%</p><p className="text-muted-foreground leading-tight">Show Rate</p></div>
-                                <div className="bg-background p-1 rounded border"><p className="font-semibold text-sm">{StaticClientViewData.avgVisitWeeks} <span className="font-normal">Wks</span></p><p className="text-muted-foreground leading-tight">AVG Visit</p></div>
-                                <div className="bg-background p-1 rounded border"><p className="font-semibold text-sm">${StaticClientViewData.avgVisitValue}</p><p className="text-muted-foreground leading-tight">AVG Value</p></div>
-                            </div>
-                        </SheetHeader>
+                        {/* Use the reusable header component for mobile */}
+                        <ClientSheetHeaderContent
+                            selectedClient={selectedClient}
+                            staticData={StaticClientViewData}
+                            onChangeMode={onChangeMode}
+                            onSetMobileTab={setSelectedMobileTab} // Pass mobile tab setter
+                        />
 
                         <div className="p-4 border-b flex-shrink-0 overflow-x-auto">
                             <div className="flex space-x-6 min-w-max">
@@ -220,35 +191,13 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                 {/* Desktop View */}
                 <div className="hidden md:flex flex-row w-full h-full">
                     <div className="flex flex-col w-1/2 border-r overflow-hidden">
-                        <SheetHeader className="p-2.5 border-b bg-muted/30 space-y-2 flex-shrink-0">
-                            <div className="flex items-center gap-2">
-                                <Avatar className="h-12 w-12 border">
-                                    <AvatarImage src={undefined} alt={`${selectedClient.first_name} ${selectedClient.last_name}`} />
-                                    <AvatarFallback className="text-lg">{selectedClient.first_name?.[0]}{selectedClient.last_name?.[0]}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                    <SheetTitle className="text-lg font-semibold leading-tight">{selectedClient.first_name} {selectedClient.last_name}</SheetTitle>
-                                    <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground mt-0.5">
-                                        <span>{StaticClientViewData.points} PTS</span><span className="mx-0.5">&bull;</span>
-                                        <span>{StaticClientViewData.visits} VST</span><span className="mx-0.5">&bull;</span>
-                                        <span className="flex items-center gap-0.5"><StarIcon className="w-3 h-3 fill-yellow-400 text-yellow-400" />{StaticClientViewData.rating}({StaticClientViewData.ratingCount})</span>
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-1 pr-8" >
-                                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => { onChangeMode('edit', selectedClient); /* Optionally set desktop tab here if needed */ }}>
-                                        <Edit className="h-4 w-4" /><span className="sr-only">Edit</span>
-                                    </Button>
-                                    <Button size="icon" variant="outline" className="h-8 w-8"><Mail className="h-4 w-4" /><span className="sr-only">Email</span></Button>
-                                    <Button size="icon" variant="outline" className="h-8 w-8"><Phone className="h-4 w-4" /><span className="sr-only">Call</span></Button>
-                                    <Button size="icon" variant="outline" className="h-8 w-8"><Bell className="h-4 w-4" /><span className="sr-only">Notifications</span></Button>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-1 text-center text-xs">
-                                <div className="bg-background p-1 rounded border"><p className="font-semibold text-sm">{StaticClientViewData.showRate}%</p><p className="text-muted-foreground leading-tight">Show Rate</p></div>
-                                <div className="bg-background p-1 rounded border"><p className="font-semibold text-sm">{StaticClientViewData.avgVisitWeeks} <span className="font-normal">Wks</span></p><p className="text-muted-foreground leading-tight">AVG Visit</p></div>
-                                <div className="bg-background p-1 rounded border"><p className="font-semibold text-sm">${StaticClientViewData.avgVisitValue}</p><p className="text-muted-foreground leading-tight">AVG Value</p></div>
-                            </div>
-                        </SheetHeader>
+                        {/* Use the reusable header component for desktop */}
+                        <ClientSheetHeaderContent
+                            selectedClient={selectedClient}
+                            staticData={StaticClientViewData}
+                            onChangeMode={onChangeMode}
+                            // Do not pass onSetMobileTab for desktop
+                        />
 
                         <div className="flex-1 overflow-y-auto p-3">
                             {sheetMode === 'view' && (
