@@ -28,7 +28,7 @@ interface ClientSheetContentProps {
     sheetMode: SheetMode;
     selectedClient: TableClient | null; // Use TableClient alias
     onSuccess: (formData: NewClientData | ServiceClient) => void; // Use ServiceClient and NewClientData
-    onOpenSheet: (mode: SheetMode, client: TableClient | null) => void; // Use TableClient alias
+    onChangeMode: (mode: SheetMode, client?: TableClient | null) => void; // Use TableClient alias
     onCloseSheet: () => void;
     onRequestDelete?: () => void; // Added prop for delete request from sheet
 }
@@ -62,7 +62,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
     sheetMode,
     selectedClient,
     onSuccess,
-    onOpenSheet,
+    onChangeMode,
     onCloseSheet,
     onRequestDelete
 }) => {
@@ -103,8 +103,8 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
 
     // Handler for canceling - Switches back to view if editing, otherwise closes
     const handleCancelEdit = () => {
-      if (sheetMode === 'edit' || sheetMode === 'view' && selectedClient) {
-        onOpenSheet('view', selectedClient); // Switch back to view mode
+      if (sheetMode === 'edit' && selectedClient) {
+        onChangeMode('view', selectedClient); // Use onChangeMode to switch back to view
       } else {
         onCloseSheet(); // Close sheet if cancelling 'add' or if something unexpected happens
       }
@@ -140,11 +140,12 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                         </div>
                         {/* The Client Form */}
                         <AddClientForm
-                            key={selectedClient?.id || 'view-edit-form'}
+                            key={selectedClient?.id || 'mobile-view-edit-form'}
                             initialData={mapClientToFormData(selectedClient)}
                             isInitiallyEditing={sheetMode === 'edit'}
                             onSuccess={onSuccess}
                             onCancelEdit={handleCancelEdit}
+                            onRequestDeleteFromForm={onRequestDelete}
                             className="mt-0"
                         />
                     </>
@@ -185,9 +186,9 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                                         <span className="flex items-center gap-0.5"><StarIcon className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />{StaticClientViewData.rating}({StaticClientViewData.ratingCount})</span>
                                     </div>
                                 </div>
-                                {/* Action Buttons */}
+                                {/* Action Buttons - Mobile */}
                                 <div className="flex justify-end gap-1 pr-8" >
-                                    <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => { onOpenSheet('edit', selectedClient); setSelectedMobileTab('INFO'); }}>
+                                    <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => { onChangeMode('edit', selectedClient); setSelectedMobileTab('INFO'); }}>
                                         <Edit className="h-3.5 w-3.5" /><span className="sr-only">Edit</span>
                                     </Button>
                                     <Button size="icon" variant="outline" className="h-6 w-6"><Mail className="h-3.5 w-3.5" /><span className="sr-only">Email</span></Button>
@@ -216,19 +217,6 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
 
                         {/* Tab Content Area for Mobile */}
                         <div className="flex-1 overflow-y-auto p-3">
-                            {/* Delete Button - Visible in view/edit mode if onRequestDelete is provided */}
-                            {(sheetMode === 'view' || sheetMode === 'edit') && onRequestDelete && selectedMobileTab === 'INFO' && (
-                                <div className="mb-4 flex justify-end">
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={onRequestDelete}
-                                    >
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Delete
-                                    </Button>
-                                </div>
-                            )}
                             {renderMobileTabContent()}
                         </div>
                     </div>
@@ -251,9 +239,9 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                                         <span className="flex items-center gap-0.5"><StarIcon className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />{StaticClientViewData.rating}({StaticClientViewData.ratingCount})</span>
                                     </div>
                                 </div>
-                                {/* Action Buttons */}
+                                {/* Action Buttons - Desktop */}
                                 <div className="flex justify-end gap-1 pr-8" >
-                                    <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => { onOpenSheet('edit', selectedClient); setSelectedMobileTab('INFO'); }}>
+                                    <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => { onChangeMode('edit', selectedClient); /* Optionally set desktop tab here if needed */ }}>
                                         <Edit className="h-3.5 w-3.5" /><span className="sr-only">Edit</span>
                                     </Button>
                                     <Button size="icon" variant="outline" className="h-6 w-6"><Mail className="h-3.5 w-3.5" /><span className="sr-only">Email</span></Button>
@@ -269,7 +257,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                             </div>
                         </SheetHeader>
 
-                        {/* Scrollable Content Area */}
+                        {/* Scrollable Content Area - Desktop */}
                         <div className="flex-1 overflow-y-auto p-3">
                             {/* Static View Elements Displayed Above the Form (Only in View Mode) */}
                             {sheetMode === 'view' && (
@@ -294,29 +282,14 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                                 </div>
                             )}
 
-                            {/* Delete Button - Now visible in view mode as well, if onRequestDelete is provided */}
-                            {(sheetMode === 'view' || sheetMode === 'edit') && onRequestDelete && (
-                                <div className="mb-4 flex justify-end"> {/* Wrapper for positioning */}
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={onRequestDelete}
-                                        // Optionally disable if not in edit mode, depending on desired UX
-                                        // disabled={sheetMode !== 'edit'}
-                                    >
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Delete
-                                    </Button>
-                                </div>
-                            )}
-
-                            {/* The Client Form */}
+                            {/* The Client Form - Pass the delete handler */}
                             <AddClientForm
                                 key={selectedClient.id || 'view-edit-form'}
                                 initialData={mapClientToFormData(selectedClient)}
                                 isInitiallyEditing={sheetMode === 'edit'}
                                 onSuccess={onSuccess} // Propagate success callback
                                 onCancelEdit={handleCancelEdit} // Propagate cancel callback
+                                onRequestDeleteFromForm={onRequestDelete} // Pass delete handler
                                 className="mt-0"
                             />
                         </div>

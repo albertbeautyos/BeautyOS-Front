@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet"; // Only need Sheet itself here
 import { TableSkeleton } from "@/components/table-skeleton";
 import { DataTableContent } from './data-table-content';
-import { Client, columns } from "./components/columns";
-import { NewClientData } from '@/services/clients';
+import { Client as TableClient, columns } from "./components/columns";
+import { NewClientData, Client as ServiceClient } from '@/services/clients';
 import { Toaster } from "@/components/ui/sonner";
 import { PlusCircle } from 'lucide-react';
 import { toast } from "sonner";
@@ -19,7 +19,7 @@ import { ClientDeleteDialog } from './components/ClientDeleteDialog';
 type SheetMode = 'add' | 'view' | 'edit' | null;
 
 // Simulate fetching data - Replace this with your actual data fetching logic
-async function getFakeClients(): Promise<Client[]> {
+async function getFakeClients(): Promise<TableClient[]> {
   // Updated Dummy Data matching the new Client type:
   return [
     {
@@ -229,19 +229,19 @@ async function getFakeClients(): Promise<Client[]> {
 
 // --- Main Page Component (Refactored) ---
 export default function DashboardClientsPage() {
-  const [clientData, setClientData] = useState<Client[]>([]);
+  const [clientData, setClientData] = useState<TableClient[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Sheet state
   const [sheetMode, setSheetMode] = useState<SheetMode>(null);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedClient, setSelectedClient] = useState<TableClient | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   // Delete confirmation state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<TableClient | null>(null);
 
 
   // --- WORKAROUND for lingering pointer-events: none on body ---
@@ -289,40 +289,41 @@ export default function DashboardClientsPage() {
   }, [clientData, searchTerm]);
 
   // --- Sheet Handlers ---
-  const openSheet = useCallback((mode: SheetMode, client: Client | null = null) => {
+  const handleOpenSheet = useCallback((mode: SheetMode, client: TableClient | null = null) => {
+    console.log(`Opening sheet: mode=${mode}, client=`, client); // Debug log
     setSheetMode(mode);
     setSelectedClient(client);
     setIsSheetOpen(true);
-  }, []); // Dependencies are stable setters
-
-  const handleSheetOpenChange = useCallback((open: boolean) => {
-    setIsSheetOpen(open);
-    if (!open) {
-      // Delay resetting state slightly for smoother closing animation/cleanup
-      setTimeout(() => {
-        setSheetMode(null);
-        setSelectedClient(null);
-      }, 50);
-    }
   }, []);
 
-  const handleFormSuccess = useCallback((formData: NewClientData | Client) => {
-    handleSheetOpenChange(false); // Close sheet on success
-    loadData(); // Refresh the client list
-    toast.success(sheetMode === 'add' ? "Client Added" : "Client Updated");
-  }, [handleSheetOpenChange, loadData, sheetMode]); // Include sheetMode dependency
+  const handleChangeSheetMode = useCallback((mode: SheetMode, client: TableClient | null = selectedClient) => {
+    console.log(`Changing sheet mode: mode=${mode}, client=`, client); // Debug log
+    // Only change mode and potentially the client, don't affect isSheetOpen
+    setSheetMode(mode);
+    setSelectedClient(client); // Update client if provided (e.g., needed for cancel->view)
+  }, [selectedClient]);
+
+  const handleCloseSheet = useCallback(() => {
+    console.log("Closing sheet"); // Debug log
+    setIsSheetOpen(false);
+    // Optionally reset mode and client after a short delay to allow animation
+    // setTimeout(() => {
+    //   setSheetMode(null);
+    //   setSelectedClient(null);
+    // }, 150); // Adjust delay as needed
+  }, []);
 
   // --- Table Action Handlers (passed via meta) ---
-  const handleViewClient = useCallback((client: Client) => {
-    openSheet('view', client);
-  }, [openSheet]);
+  const handleViewClient = useCallback((client: TableClient) => {
+    handleOpenSheet('view', client);
+  }, [handleOpenSheet]);
 
-  const handleEditClient = useCallback((client: Client) => {
-    openSheet('edit', client);
-  }, [openSheet]);
+  const handleEditClient = useCallback((client: TableClient) => {
+    handleOpenSheet('edit', client);
+  }, [handleOpenSheet]);
 
   // Handler to initiate delete (used by both table row and sheet button)
-  const handleDeleteRequest = useCallback((client: Client | null) => {
+  const handleDeleteRequest = useCallback((client: TableClient | null) => {
     if (!client) return;
     setClientToDelete(client);
     setIsDeleteDialogOpen(true);
@@ -356,8 +357,25 @@ export default function DashboardClientsPage() {
   const tableMeta = useMemo(() => ({
     viewClient: handleViewClient,
     editClient: handleEditClient,
-    deleteClient: (client: Client) => handleDeleteRequest(client), // Pass client from row
+    deleteClient: (client: TableClient) => handleDeleteRequest(client), // Pass client from row
   }), [handleViewClient, handleEditClient, handleDeleteRequest]);
+
+  // --- Component Handlers passed to Children ---
+  const handleAddClientSuccess = (newOrUpdatedClient: NewClientData | ServiceClient) => {
+    console.log("Add/Update Success:", newOrUpdatedClient);
+    // Refetch or update data
+    loadData(); // Example: refetch all data
+    // Decide whether to close the sheet or switch mode
+    if (sheetMode === 'add') {
+        handleCloseSheet(); // Close after adding
+    } else if (sheetMode === 'edit') {
+        handleChangeSheetMode('view', newOrUpdatedClient as TableClient); // Switch to view mode after editing
+    }
+  };
+
+  const handleRequestDeleteFromSheet = useCallback(() => {
+    handleDeleteRequest(selectedClient);
+  }, [handleDeleteRequest, selectedClient]);
 
   return (
     <div className="space-y-4 p-4 md:p-6"> {/* Added padding */}
@@ -370,7 +388,7 @@ export default function DashboardClientsPage() {
           onChange={(event) => setSearchTerm(event.target.value)}
           className="w-full sm:max-w-sm" // Full width on small screens
         />
-        <Button onClick={() => openSheet('add')} className="w-full sm:w-auto"> {/* Full width on small screens */}
+        <Button onClick={() => handleOpenSheet('add')} className="w-full sm:w-auto"> {/* Full width on small screens */}
           <PlusCircle className="mr-2 h-4 w-4" /> Add Client
         </Button>
       </div>
@@ -389,21 +407,19 @@ export default function DashboardClientsPage() {
 
       {/* Client Sheet - Uses the extracted component */}
       <Sheet
-        // Key ensures component re-mounts when mode/client changes, resetting internal state
-        key={`${sheetMode}-${selectedClient?.id ?? 'add'}-sheet`}
+        // Key only depends on the client ID or 'add' mode,
+        // preventing remount when toggling view/edit for the same client.
+        key={selectedClient?.id ?? 'add'}
         open={isSheetOpen}
-        onOpenChange={handleSheetOpenChange}
+        onOpenChange={setIsSheetOpen}
       >
         <ClientSheetContent
             sheetMode={sheetMode}
             selectedClient={selectedClient}
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            //@ts-ignore
-            onSuccess={handleFormSuccess}
-            onOpenSheet={openSheet}
-            onCloseSheet={() => handleSheetOpenChange(false)}
-            // Pass the handler, ensuring it uses the currently selectedClient
-            onRequestDelete={() => handleDeleteRequest(selectedClient)}
+            onSuccess={handleAddClientSuccess}
+            onChangeMode={handleChangeSheetMode}
+            onCloseSheet={handleCloseSheet}
+            onRequestDelete={handleRequestDeleteFromSheet}
         />
       </Sheet>
 

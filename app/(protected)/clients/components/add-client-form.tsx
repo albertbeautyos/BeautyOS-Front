@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns"; // For date picker
-import { CalendarIcon, Loader2, PencilIcon, XIcon } from 'lucide-react'; // Icons
+import { CalendarIcon, Loader2, PencilIcon, XIcon, Trash2 } from 'lucide-react'; // Icons
 
 import { Button } from "@/components/ui/button";
 import {
@@ -50,9 +50,10 @@ const formSchema = z.object({
 
 interface AddClientFormProps {
     initialData?: Partial<NewClientData>; // Accept initial data
-    isInitiallyEditing?: boolean; // Control initial mode
+    isInitiallyEditing?: boolean; // Control initial mode - THIS WILL NOW BE THE ONLY SOURCE OF TRUTH FOR EDIT STATE
     onSuccess?: (data: NewClientData | Client) => void; // Updated type
     onCancelEdit?: () => void; // Optional callback for cancelling edit
+    onRequestDeleteFromForm?: () => void; // New prop for delete action
     className?: string;
 }
 
@@ -61,9 +62,9 @@ export function AddClientForm({
     isInitiallyEditing = !initialData, // Default to edit if no initial data, view otherwise
     onSuccess,
     onCancelEdit,
+    onRequestDeleteFromForm, // Destructure new prop
     className
 }: AddClientFormProps) {
-  const [isEditing, setIsEditing] = useState(isInitiallyEditing);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -115,9 +116,8 @@ export function AddClientForm({
                 country: initialData.address?.country ?? "",
             },
           });
-          setIsEditing(isInitiallyEditing); // Reset edit mode based on prop
       }
-  }, [initialData, form.reset, isInitiallyEditing]); // form.reset is stable
+  }, [initialData, form.reset]); // form.reset is stable
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     // console.log("onSubmit called. Mode:", initialData ? 'update' : 'add', "Values:", values);
@@ -143,7 +143,6 @@ export function AddClientForm({
             const updatedClient = { ...initialData, ...dataPayload, id: initialData.id } as unknown as (NewClientData | Client);
             // -----
             toast.success("Client Updated", { description: `${dataPayload.firstName} ${dataPayload.lastName} details updated.` });
-            setIsEditing(false);
             onSuccess?.(updatedClient);
         } else {
             // ADD LOGIC
@@ -182,31 +181,15 @@ export function AddClientForm({
 
   const handleCancelEdit = () => {
     form.reset(); // Reset to initialData values
-    setIsEditing(false);
-    onCancelEdit?.();
+    onCancelEdit?.(); // Notify parent to handle mode change or close
   }
 
   // Determine if fields should be disabled (view mode)
-  const isDisabled = !isEditing && !!initialData;
+  const isDisabled = !isInitiallyEditing && !!initialData;
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className={`space-y-4 ${className}`}>
-
-         {/* Edit/Cancel Buttons for View Mode */}
-         {initialData && (
-            <div className="flex justify-end gap-2 mb-4">
-                {!isEditing ? (
-                    <Button type="button" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                        <PencilIcon className="mr-2 h-4 w-4" /> Edit
-                    </Button>
-                ) : (
-                    <Button type="button" variant="ghost" size="sm" onClick={handleCancelEdit}>
-                         <XIcon className="mr-2 h-4 w-4" /> Cancel
-                    </Button>
-                )}
-            </div>
-         )}
 
         {/* Form Fields Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -430,17 +413,37 @@ export function AddClientForm({
             />
         </div>
 
-        {/* Submit Button (conditional) */}
-        {(isEditing || !initialData) && (
-            <Button type="submit" disabled={isSubmitting} className="w-full !mt-6">
-            {isSubmitting ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
-            ) : initialData ? (
-                "Save Changes"
-            ) : (
-                "Add Client"
-            )}
-            </Button>
+        {/* Submit, Cancel, and Delete Buttons at the end */}
+        {/* Only show if in edit mode */}
+        {isInitiallyEditing && (
+            <div className="flex justify-end items-center gap-2 pt-4">
+                {/* Delete Icon Button - Only show when editing existing data */}
+                {initialData && onRequestDeleteFromForm && (
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={onRequestDeleteFromForm}
+                        disabled={isSubmitting}
+                        aria-label="Delete Client"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                )}
+                {/* Spacer to push cancel/save to the right if delete is present */}
+                {initialData && onRequestDeleteFromForm && <div className="flex-grow"></div>}
+
+                {/* Cancel Button */}
+                <Button type="button" variant="ghost" onClick={onCancelEdit} disabled={isSubmitting}>
+                    Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    {initialData ? "Save Changes" : "Add Client"}
+                </Button>
+            </div>
         )}
       </form>
     </Form>
