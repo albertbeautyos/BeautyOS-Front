@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns"; // For date picker
-import { CalendarIcon, Loader2, PencilIcon, XIcon, Trash2 } from 'lucide-react'; // Icons
+import { CalendarIcon, Loader2, PencilIcon, XIcon, Trash2, Copy } from 'lucide-react'; // Icons
 
 import { Button } from "@/components/ui/button";
 import {
@@ -94,6 +94,21 @@ export function AddClientForm({
         address: { street: "", city: "", state: "", postalCode: "", country: "" },
     },
   });
+
+  // Helper function for copy to clipboard
+  const handleCopyToClipboard = async (text: string, fieldName: string) => {
+    if (!navigator.clipboard) {
+      toast.error("Clipboard API not available");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${fieldName} copied to clipboard!`);
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+      toast.error(`Failed to copy ${fieldName}`);
+    }
+  };
 
   // Reset form if initialData changes (e.g., navigating between clients)
   useEffect(() => {
@@ -228,7 +243,21 @@ export function AddClientForm({
               <FormItem>
                 <FormLabel>Phone {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
                 <FormControl>
-                  <Input {...field} disabled={isDisabled} />
+                  <div className="relative flex items-center">
+                    <Input {...field} disabled={isDisabled} className={cn(isDisabled && "pr-10")} />
+                    {isDisabled && field.value && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 h-7 w-7"
+                        onClick={() => handleCopyToClipboard(field.value, 'Phone')}
+                      >
+                        <Copy className="h-4 w-4" />
+                        <span className="sr-only">Copy Phone</span>
+                      </Button>
+                    )}
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -241,7 +270,21 @@ export function AddClientForm({
               <FormItem>
                 <FormLabel>Email {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
                 <FormControl>
-                  <Input type="email" {...field} disabled={isDisabled} />
+                  <div className="relative flex items-center">
+                    <Input type="email" {...field} disabled={isDisabled} className={cn(isDisabled && "pr-10")} />
+                    {isDisabled && field.value && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 h-7 w-7"
+                        onClick={() => handleCopyToClipboard(field.value, 'Email')}
+                      >
+                        <Copy className="h-4 w-4" />
+                        <span className="sr-only">Copy Email</span>
+                      </Button>
+                    )}
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
