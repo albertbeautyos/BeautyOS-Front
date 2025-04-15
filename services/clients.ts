@@ -2,20 +2,32 @@
 
 import axiosInstance from "@/api/axiosInstance";
 
-// Updated Client interface to match the API response structure
+// Updated Client interface to match the detailed structure from POST response
+// Note: This might differ from the structure returned by GET /clients
 export interface Client {
   id: string;
-  firstName: string; // Changed from first_name
-  lastName: string;  // Changed from last_name
+  firstName: string;
+  lastName: string;
+  username?: string; // Added field
+  profileImage?: string; // Added field
   email: string;
-  phone: string;     // Changed from contact
-  showRate?: number; // Added field, assumed optional for safety
-  avgVisit?: number; // Added field, assumed optional for safety
-  avgVisitValue?: number; // Added field, assumed optional for safety
-  // Removed last_visit as it's not in the new structure
+  phone: string;
+  gender?: string; // Now part of the main Client type
+  pronouns?: string; // Now part of the main Client type
+  referredBy?: string; // Now part of the main Client type
+  clientType?: string; // Now part of the main Client type
+  birthday?: string | Date; // Keep Date for potential use, but API likely uses string
+  address?: AddressData; // Added AddressData back
+  status?: string; // Added field
+  showRate?: number;
+  avgVisit?: number;
+  avgVisitValue?: number;
+  createdAt?: string | Date; // Added field
+  updatedAt?: string | Date; // Added field
+  otp?: string; // Added field - Consider security implications
 }
 
-// Interface for the overall API response structure
+// Interface for the overall API response structure for GET /clients (as defined previously)
 interface GetClientsResponse {
     metadata: {
         totalRecords: number;
@@ -23,6 +35,7 @@ interface GetClientsResponse {
         page: number;
     };
     records: Client[];
+    type: string;
 }
 
 // Define the structure for data needed to create a new client (omit server-generated fields like id, last_visit)
@@ -31,15 +44,17 @@ interface LocationData {
   type: string;
 }
 
+// Updated AddressData to include location explicitly as per request/response
 interface AddressData {
-  street?: string;      // Made optional
-  city?: string;        // Made optional
-  state?: string;       // Made optional
-  postalCode?: string;  // Made optional
-  country?: string;     // Made optional
+  street?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
   location?: LocationData;
 }
 
+// Updated NewClientData interface to match the client creation request structure
 export interface NewClientData {
   firstName: string;
   lastName: string;
@@ -48,7 +63,7 @@ export interface NewClientData {
   gender?: string; // Optional fields
   pronouns?: string;
   referredBy?: string;
-  clientType: string;
+  clientType?: string; // Made required as per user request
   birthday?: Date | string; // Allow string initially, convert before sending
   address?: AddressData; // Make address optional initially
 }
@@ -61,7 +76,7 @@ export interface NewClientData {
 export const getClients = async (): Promise<Client[]> => {
   try {
     // Expect the nested structure based on the provided JSON
-    const response = await axiosInstance.get<GetClientsResponse>('clients');
+    const response = await axiosInstance.get<GetClientsResponse>('clients?top=1000000 ');
     // Return only the records array
     return response.data.records;
   } catch (error) {
@@ -79,12 +94,19 @@ export const getClients = async (): Promise<Client[]> => {
  */
 export const addClient = async (clientData: NewClientData): Promise<Client> => {
     try {
-        // Potentially transform data before sending, e.g., ensure birthday is ISO string if needed by API
-        const dataToSend = {
+        // Ensure data matches the exact request structure
+        // Remove any fields from clientData that are not in NewClientData definition if necessary
+        const dataToSend: NewClientData = {
             ...clientData,
-            // Example: convert Date object to ISO string if needed
-            birthday: clientData.birthday instanceof Date ? clientData.birthday.toISOString() : clientData.birthday
+            // Ensure birthday is ISO string if it's a Date object
+            birthday: clientData.birthday instanceof Date ? clientData.birthday.toISOString() : clientData.birthday,
+            clientType: clientData.clientType || "REGULAR",
+           address:{ ...clientData.address, location: {
+            coordinates: [0, 0],
+            type: "Point"
+           }  }
         };
+        // Expect the detailed Client structure in the response
         const response = await axiosInstance.post<Client>('/clients', dataToSend);
         return response.data;
     } catch (error) {

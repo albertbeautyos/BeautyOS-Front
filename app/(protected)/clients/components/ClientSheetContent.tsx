@@ -64,21 +64,19 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
     const [selectedSidebarTab, setSelectedSidebarTab] = useState<string>('DASH'); // Default sidebar tab
     const [selectedMobileTab, setSelectedMobileTab] = useState<string>('INFO'); // Default mobile tab for view/edit
 
-    // Static Data Helper - Updated to use correct Client properties
+    // Static Data Helper - Updated to match ClientSheetHeaderContent props
     const StaticClientViewData = useMemo(() => ({
-        // Removed: points, visits, rating, lastVisited (not in new Client type)
+        // Use properties available in selectedClient or static examples
         showRate: selectedClient?.showRate ?? 0,
-        avgVisit: selectedClient?.avgVisit ?? 0,
+        // avgVisit: selectedClient?.avgVisit ?? 0, // avgVisitWeeks is used in header, keep static example
         avgVisitValue: selectedClient?.avgVisitValue ?? 0,
-        // Example data (keep as is or update based on requirements)
+        // Static/Example Data expected by header
         ratingCount: 84, // Example
         avgVisitWeeks: 4.5, // Example
+        // Other static data used within this component
         tagsHair: ["Hair color", "Haircuts", "Haircuts"], // Example data
         tagsSalon: ["Salon 1", "Salon 2"], // Example data
-        // addressDisplay: selectedClient?.address // Address might not be directly on Client
-        //     ? `${selectedClient.address.street || ''}, ${selectedClient.address.city || ''} ${selectedClient.address.state || ''}`.trim().replace(/, $/, '')
-        //     : "No Address",
-        addressDisplay: "Address info TBD", // Placeholder
+        addressDisplay: "Address info TBD", // Placeholder - Address is not directly on Client now
     }), [selectedClient]);
 
     // Determines the title based on the current mode

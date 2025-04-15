@@ -42,7 +42,7 @@ const formSchema = z.object({
   gender: z.string().optional(),
   pronouns: z.string().optional(),
   referredBy: z.string().optional(),
-  clientType: z.string().min(1, { message: "Client type is required." }), // Required
+  clientType: z.string().optional(), // Changed from required to optional
   birthday: z.date().optional(), // Use z.date() for DatePicker
   address: addressSchema,
 });
@@ -334,9 +334,12 @@ export function AddClientForm({
             name="clientType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Client Type {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
+                <FormLabel>Client Type</FormLabel>
                 <FormControl>
-                  <Input {...field} disabled={isDisabled} />
+                  <Input
+                    {...field}
+                    disabled={isDisabled}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
