@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   SheetContent,
   SheetDescription,
@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ClientSheetHeaderContent, type SheetMode } from './ClientSheetHeaderContent'; // Import the new component and SheetMode type
+import { Loader2 } from "lucide-react";
 
 // Interface for the main component props
 interface ClientSheetContentProps {
@@ -24,32 +25,50 @@ interface ClientSheetContentProps {
     onChangeMode: (mode: SheetMode, client?: Client | null) => void; // Use imported Client type
     onCloseSheet: () => void;
     onRequestDelete?: () => void; // Added prop for delete request from sheet
+    isLoading?: boolean; // Add loading state
 }
 
 // Utility function to map Client data to form data structure
 // Input should be the imported Client type
 const mapClientToFormData = (client: Client | null): Partial<NewClientData> | undefined => {
     if (!client) return undefined;
-    return {
-        // Use correct property names
-        firstName: client.firstName,
-        lastName: client.lastName,
-        phone: client.phone,
-        email: client.email,
-        // Keep optional fields if they are part of NewClientData
-        // gender: client.gender, // Assuming these might not be on the fetched Client type anymore
-        // pronouns: client.pronouns,
-        // referredBy: client.referredBy,
-        // clientType: client.clientType,
-        // birthday: client.birthday,
-        // address: client.address ? { // Assuming address might not be on the fetched Client type
-        //     street: client.address.street,
-        //     city: client.address.city,
-        //     state: client.address.state,
-        //     postalCode: client.address.postalCode,
-        //     country: client.address.country,
-        // } : undefined,
-    };
+
+    console.log("Mapping client data to form:", client);
+
+    try {
+        return {
+            // Map basic client information
+            firstName: client.firstName,
+            lastName: client.lastName,
+            phone: client.phone,
+            email: client.email,
+            // Include all optional fields
+            gender: client.gender,
+            pronouns: client.pronouns,
+            referredBy: client.referredBy,
+            clientType: client.clientType,
+            // Handle date conversion
+            birthday: client.birthday ? new Date(client.birthday) : undefined,
+            // Map address information if available
+            address: client.address ? {
+                street: client.address.street,
+                city: client.address.city,
+                state: client.address.state,
+                postalCode: client.address.postalCode,
+                country: client.address.country,
+                location: client.address.location
+            } : undefined,
+        };
+    } catch (error) {
+        console.error("Error mapping client data:", error);
+        // Return basic data if mapping fails
+        return {
+            firstName: client.firstName || "",
+            lastName: client.lastName || "",
+            phone: client.phone || "",
+            email: client.email || "",
+        };
+    }
 };
 
 // The Sheet Content Component
@@ -59,7 +78,8 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
     onSuccess,
     onChangeMode,
     onCloseSheet,
-    onRequestDelete
+    onRequestDelete,
+    isLoading
 }) => {
     const [selectedSidebarTab, setSelectedSidebarTab] = useState<string>('DASH'); // Default sidebar tab
     const [selectedMobileTab, setSelectedMobileTab] = useState<string>('INFO'); // Default mobile tab for view/edit
@@ -180,7 +200,14 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-3">
-                            {renderMobileTabContent()}
+                            {isLoading ? (
+                                <div className="flex items-center justify-center h-full">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+                                    <span>Loading client data...</span>
+                                </div>
+                            ) : (
+                                renderMobileTabContent()
+                            )}
                         </div>
                     </div>
                 </div>
@@ -196,32 +223,41 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                         />
 
                         <div className="flex-1 overflow-y-auto p-3">
-                            {sheetMode === 'view' && (
-                                <div className="space-y-3 mb-3">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <Label className="text-xs font-semibold text-muted-foreground">Tags</Label>
-                                            <div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsHair.map((tag, index) => (<Badge key={`hair-${index}`} variant="secondary" className="text-xs font-semibold px-2 py-0.5 leading-tight">{tag}</Badge>))}</div>
-                                            <div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsSalon.map((tag, index) => (<Badge key={`salon-${index}`} variant="secondary" className="text-xs font-semibold px-2 py-0.5 leading-tight">{tag}</Badge>))}</div>
-                                        </div>
-                                        <div>
-                                            <Label className="text-xs font-semibold text-muted-foreground">Last Visited</Label>
-                                            <p className="text-xs font-semibold mt-1">{StaticClientViewData.addressDisplay}</p>
-                                        </div>
-                                    </div>
-                                    <Separator className="my-2"/>
+                            {isLoading ? (
+                                <div className="flex items-center justify-center h-full">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+                                    <span>Loading client data...</span>
                                 </div>
-                            )}
+                            ) : (
+                                <>
+                                    {sheetMode === 'view' && (
+                                        <div className="space-y-3 mb-3">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label className="text-xs font-semibold text-muted-foreground">Tags</Label>
+                                                    <div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsHair.map((tag, index) => (<Badge key={`hair-${index}`} variant="secondary" className="text-xs font-semibold px-2 py-0.5 leading-tight">{tag}</Badge>))}</div>
+                                                    <div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsSalon.map((tag, index) => (<Badge key={`salon-${index}`} variant="secondary" className="text-xs font-semibold px-2 py-0.5 leading-tight">{tag}</Badge>))}</div>
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs font-semibold text-muted-foreground">Last Visited</Label>
+                                                    <p className="text-xs font-semibold mt-1">{StaticClientViewData.addressDisplay}</p>
+                                                </div>
+                                            </div>
+                                            <Separator className="my-2"/>
+                                        </div>
+                                    )}
 
-                            <AddClientForm
-                                key={selectedClient.id || 'view-edit-form'}
-                                initialData={mapClientToFormData(selectedClient)}
-                                isInitiallyEditing={sheetMode === 'edit'}
-                                onSuccess={onSuccess}
-                                onCancelEdit={handleCancelEdit}
-                                onRequestDeleteFromForm={onRequestDelete}
-                                className="mt-0"
-                            />
+                                    <AddClientForm
+                                        key={selectedClient.id || 'view-edit-form'}
+                                        initialData={mapClientToFormData(selectedClient)}
+                                        isInitiallyEditing={sheetMode === 'edit'}
+                                        onSuccess={onSuccess}
+                                        onCancelEdit={handleCancelEdit}
+                                        onRequestDeleteFromForm={onRequestDelete}
+                                        className="mt-0"
+                                    />
+                                </>
+                            )}
                         </div>
                     </div>
 

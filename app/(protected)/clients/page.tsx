@@ -7,7 +7,7 @@ import { Sheet } from "@/components/ui/sheet"; // Only need Sheet itself here
 import { TableSkeleton } from "@/components/table-skeleton";
 import { DataTableContent } from './data-table-content';
 import {  columns } from "./components/columns";
-import { Client, getClients, NewClientData, Client as ServiceClient } from '@/services/clients';
+import { Client, getClients, NewClientData, Client as ServiceClient, getClientById } from '@/services/clients';
 import { Toaster } from "@/components/ui/sonner";
 import { PlusCircle } from 'lucide-react';
 import { toast } from "sonner";
@@ -52,16 +52,6 @@ type SheetMode = 'add' | 'view' | 'edit' | null;
 //       visits: 5,
 //       rating: 4.2,
 //       points: 250,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
 //     },
 //     {
 //       id: "CLI-004",
@@ -314,8 +304,24 @@ export default function DashboardClientsPage() {
   }, []);
 
   // --- Table Action Handlers (passed via meta) ---
-  const handleViewClient = useCallback((client: Client) => {
-    handleOpenSheet('view', client);
+  const handleViewClient = useCallback(async (client: Client) => {
+    try {
+      // Fetch the latest client data by ID before showing the client sheet
+      console.log(`Fetching client data for ID: ${client.id}`);
+      setIsLoading(true);
+      const freshClientData = await getClientById(client.id);
+      console.log("Fetched client data:", freshClientData);
+      handleOpenSheet('view', freshClientData);
+    } catch (error) {
+      console.error(`Error fetching client with ID ${client.id}:`, error);
+      toast.error("Error Loading Client", {
+        description: error instanceof Error ? error.message : "Failed to load client details"
+      });
+      // Fall back to using the data from the table if fetch fails
+      handleOpenSheet('view', client);
+    } finally {
+      setIsLoading(false);
+    }
   }, [handleOpenSheet]);
 
   const handleEditClient = useCallback((client: Client) => {
@@ -420,6 +426,7 @@ export default function DashboardClientsPage() {
             onChangeMode={handleChangeSheetMode}
             onCloseSheet={handleCloseSheet}
             onRequestDelete={handleRequestDeleteFromSheet}
+            isLoading={isLoading && sheetMode === 'view'}
         />
       </Sheet>
 

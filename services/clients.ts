@@ -116,6 +116,49 @@ export const addClient = async (clientData: NewClientData): Promise<Client> => {
     }
 };
 
-// TODO: Add functions for updating (PUT/PATCH /clients/:id) and deleting (DELETE /clients/:id) clients as needed.
+/**
+ * Fetches a single client by ID from the API.
+ * @param id - The ID of the client to fetch (required path parameter).
+ * @returns A promise that resolves to a Client object.
+ * @throws Throws an error if the API call fails.
+ */
+export const getClientById = async (id: string): Promise<Client> => {
+  try {
+    console.log(`Fetching client with ID: ${id}`);
+
+    // Pass client-id as a query parameter since the API requires it
+    const response = await axiosInstance.get<Client>(`/clients/${id}`);
+
+    return response.data;
+  } catch (error) {
+    console.error(`API Error fetching client with ID ${id}:`, error);
+    throw new Error(`Failed to fetch client with ID ${id}. Please try again.`);
+  }
+};
+
+/**
+ * Updates an existing client via the API.
+ * @param id - The ID of the client to update.
+ * @param clientData - The updated data for the client (partial data is acceptable).
+ * @returns A promise that resolves to the updated Client object.
+ * @throws Throws an error if the API call fails.
+ */
+export const updateClient = async (id: string, clientData: Partial<NewClientData>): Promise<Client> => {
+  try {
+    // Ensure any Date objects are converted to ISO strings
+    const dataToSend = {
+      ...clientData,
+      birthday: clientData.birthday instanceof Date ? clientData.birthday.toISOString() : clientData.birthday
+    };
+
+    const response = await axiosInstance.put<Client>(`/clients/${id}`, dataToSend);
+    return response.data;
+  } catch (error) {
+    console.error("API Error updating client:", error);
+    throw new Error('Failed to update client. Please check the details and try again.');
+  }
+};
+
+// TODO: Add function for deleting (DELETE /clients/:id) clients as needed.
 
 
