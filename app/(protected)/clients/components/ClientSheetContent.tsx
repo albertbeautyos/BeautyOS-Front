@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Button } from "@/components/ui/button";
 import {
   SheetContent,
   SheetDescription,
@@ -9,11 +8,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { AddClientForm } from './add-client-form';
-// Import Client from columns with an alias
-import { Client as TableClient } from "./columns";
-// Import types from the service
-import { NewClientData, Client as ServiceClient } from '@/services/clients';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+// Import Client directly from the service
+import { Client, NewClientData } from '@/services/clients'; // Removed ServiceClient alias
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
@@ -23,34 +19,36 @@ import { ClientSheetHeaderContent, type SheetMode } from './ClientSheetHeaderCon
 // Interface for the main component props
 interface ClientSheetContentProps {
     sheetMode: SheetMode;
-    selectedClient: TableClient | null; // Use TableClient alias
-    onSuccess: (formData: NewClientData | ServiceClient) => void; // Use ServiceClient and NewClientData
-    onChangeMode: (mode: SheetMode, client?: TableClient | null) => void; // Use TableClient alias
+    selectedClient: Client | null; // Use imported Client type
+    onSuccess: (formData: NewClientData | Client) => void; // Use imported Client type
+    onChangeMode: (mode: SheetMode, client?: Client | null) => void; // Use imported Client type
     onCloseSheet: () => void;
     onRequestDelete?: () => void; // Added prop for delete request from sheet
 }
 
 // Utility function to map Client data to form data structure
-// Input should be TableClient from the table data
-const mapClientToFormData = (client: TableClient | null): Partial<NewClientData> | undefined => {
+// Input should be the imported Client type
+const mapClientToFormData = (client: Client | null): Partial<NewClientData> | undefined => {
     if (!client) return undefined;
     return {
-        firstName: client.first_name,
-        lastName: client.last_name,
-        phone: client.contact,
+        // Use correct property names
+        firstName: client.firstName,
+        lastName: client.lastName,
+        phone: client.phone,
         email: client.email,
-        gender: client.gender,
-        pronouns: client.pronouns,
-        referredBy: client.referredBy,
-        clientType: client.clientType,
-        birthday: client.birthday,
-        address: client.address ? {
-            street: client.address.street,
-            city: client.address.city,
-            state: client.address.state,
-            postalCode: client.address.postalCode,
-            country: client.address.country,
-        } : undefined,
+        // Keep optional fields if they are part of NewClientData
+        // gender: client.gender, // Assuming these might not be on the fetched Client type anymore
+        // pronouns: client.pronouns,
+        // referredBy: client.referredBy,
+        // clientType: client.clientType,
+        // birthday: client.birthday,
+        // address: client.address ? { // Assuming address might not be on the fetched Client type
+        //     street: client.address.street,
+        //     city: client.address.city,
+        //     state: client.address.state,
+        //     postalCode: client.address.postalCode,
+        //     country: client.address.country,
+        // } : undefined,
     };
 };
 
@@ -66,30 +64,30 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
     const [selectedSidebarTab, setSelectedSidebarTab] = useState<string>('DASH'); // Default sidebar tab
     const [selectedMobileTab, setSelectedMobileTab] = useState<string>('INFO'); // Default mobile tab for view/edit
 
-    // Static Data Helper - Remains here as it uses selectedClient (TableClient)
+    // Static Data Helper - Updated to use correct Client properties
     const StaticClientViewData = useMemo(() => ({
-        points: selectedClient?.points ?? 0,
-        visits: selectedClient?.visits ?? 0,
-        rating: selectedClient?.rating ?? 0,
-        ratingCount: 84,
-        showRate: 100,
-        avgVisitWeeks: 4.5,
-        avgVisitValue: 284,
-        lastVisited: selectedClient?.last_visit ? new Date(selectedClient.last_visit).toLocaleString() : "N/A",
+        // Removed: points, visits, rating, lastVisited (not in new Client type)
+        showRate: selectedClient?.showRate ?? 0,
+        avgVisit: selectedClient?.avgVisit ?? 0,
+        avgVisitValue: selectedClient?.avgVisitValue ?? 0,
+        // Example data (keep as is or update based on requirements)
+        ratingCount: 84, // Example
+        avgVisitWeeks: 4.5, // Example
         tagsHair: ["Hair color", "Haircuts", "Haircuts"], // Example data
         tagsSalon: ["Salon 1", "Salon 2"], // Example data
-
-        addressDisplay: selectedClient?.address
-            ? `${selectedClient.address.street || ''}, ${selectedClient.address.city || ''} ${selectedClient.address.state || ''}`.trim().replace(/, $/, '')
-            : "No Address",
+        // addressDisplay: selectedClient?.address // Address might not be directly on Client
+        //     ? `${selectedClient.address.street || ''}, ${selectedClient.address.city || ''} ${selectedClient.address.state || ''}`.trim().replace(/, $/, '')
+        //     : "No Address",
+        addressDisplay: "Address info TBD", // Placeholder
     }), [selectedClient]);
 
     // Determines the title based on the current mode
     const getSheetTitle = () => {
         switch (sheetMode) {
             case 'add': return 'Add New Client';
-            case 'view': return selectedClient ? `${selectedClient.first_name} ${selectedClient.last_name}` : 'Client Details';
-            case 'edit': return selectedClient ? `Editing ${selectedClient.first_name} ${selectedClient.last_name}` : 'Edit Client';
+            // Use correct property names
+            case 'view': return selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : 'Client Details';
+            case 'edit': return selectedClient ? `Editing ${selectedClient.firstName} ${selectedClient.lastName}` : 'Edit Client';
             default: return 'Client Information';
         }
     };
@@ -97,7 +95,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
     // Handler for canceling - Switches back to view if editing, otherwise closes
     const handleCancelEdit = () => {
       if (sheetMode === 'edit' && selectedClient) {
-        onChangeMode('view', selectedClient); // Use onChangeMode to switch back to view
+        onChangeMode('view', selectedClient); // Use onChangeMode to switch back to view (type is now correct)
       } else {
         onCloseSheet(); // Close sheet if cancelling 'add' or if something unexpected happens
       }
@@ -127,7 +125,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                                     {/* Right Column: Last Visited */}
                                     <div>
                                         <Label className="text-xs font-semibold text-muted-foreground">Last Visited</Label>
-                                        <p className="text-xs font-semibold mt-1">{StaticClientViewData.lastVisited}</p>
+                                        <p className="text-xs font-semibold mt-1">{StaticClientViewData.addressDisplay}</p>
                                     </div>
                                 </div>
                                <Separator className="my-2"/>
@@ -210,7 +208,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                                         </div>
                                         <div>
                                             <Label className="text-xs font-semibold text-muted-foreground">Last Visited</Label>
-                                            <p className="text-xs font-semibold mt-1">{StaticClientViewData.lastVisited}</p>
+                                            <p className="text-xs font-semibold mt-1">{StaticClientViewData.addressDisplay}</p>
                                         </div>
                                     </div>
                                     <Separator className="my-2"/>

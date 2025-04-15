@@ -4,35 +4,8 @@ import { ColumnDef, RowData } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DataTableColumnHeader } from "@/components/data-table-column-header"
 import { DataTableRowActions } from "@/components/data-table-row-actions"
-import { NewClientData } from "@/services/clients"
+import { Client } from "@/services/clients"
 import '@tanstack/react-table' // Re-import for type augmentation
-
-// Define the structure for a client - Updated fields
-export type Client = {
-  id: string
-  first_name: string
-  last_name: string
-  email: string
-  contact: string // Renaming to phone if necessary should happen in data fetching/mapping
-  // Removed last_visit
-  visits: number
-  rating: number // Assuming a scale like 0-5
-  points: number
-  // Keep optional fields if they might still exist in API response or AddClientForm
-  gender?: string
-  pronouns?: string
-  referredBy?: string
-  clientType?: string
-  birthday?: Date | string
-  last_visit?: Date | string
-  address?: {
-    street?: string
-    city?: string
-    state?: string
-    postalCode?: string
-    country?: string
-  }
-}
 
 // Extend table and column meta types
 declare module '@tanstack/react-table' {
@@ -80,13 +53,13 @@ export const columns: ColumnDef<Client>[] = [
   },
   {
     id: "name",
-    accessorFn: row => `${row.first_name} ${row.last_name}`,
+    accessorFn: row => `${row.firstName} ${row.lastName}`,
     header: ({ column }) => (
        <DataTableColumnHeader column={column} title="Name" />
      ),
-    cell: ({ row }) => <div>{`${row.original.first_name} ${row.original.last_name}`}</div>,
+    cell: ({ row }) => <div>{`${row.original.firstName} ${row.original.lastName}`}</div>,
     filterFn: (row, id, value) => {
-        const name = `${row.original.first_name} ${row.original.last_name}`;
+        const name = `${row.original.firstName} ${row.original.lastName}`;
         return name.toLowerCase().includes(String(value).toLowerCase());
     },
     enableSorting: true,
@@ -104,12 +77,11 @@ export const columns: ColumnDef<Client>[] = [
     },
   },
    {
-    // Keep accessorKey as 'contact' if that's the field name in the data
-    accessorKey: "contact",
+    accessorKey: "phone",
      header: ({ column }) => (
-       <DataTableColumnHeader column={column} title="Phone" /> // Changed header title
+       <DataTableColumnHeader column={column} title="Phone" />
      ),
-    cell: ({ row }) => <div>{row.getValue("contact")}</div>,
+    cell: ({ row }) => <div>{row.getValue("phone")}</div>,
     // No meta needed, visible by default
   },
   {
@@ -123,22 +95,27 @@ export const columns: ColumnDef<Client>[] = [
     },
   },
   {
-    accessorKey: "rating",
+    accessorKey: "avgVisit",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Rating" />
+      <DataTableColumnHeader column={column} title="Avg Visit" />
     ),
-    // Format rating (e.g., show one decimal place)
-    cell: ({ row }) => <div className="text-center">{(row.getValue("rating") as number).toFixed(1)}</div>,
+    cell: ({ row }) => {
+      const value = row.getValue("avgVisit");
+      return <div className="text-center">{typeof value === 'number' ? value.toFixed(1) : 'N/A'}</div>;
+    },
     meta: {
       mobileHidden: true, // Hide on mobile
     },
   },
   {
-    accessorKey: "points",
+    accessorKey: "avgVisitValue",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Points" />
+      <DataTableColumnHeader column={column} title="Avg Value" />
     ),
-    cell: ({ row }) => <div className="text-center">{row.getValue("points")}</div>,
+    cell: ({ row }) => {
+        const value = row.getValue("avgVisitValue");
+        return <div className="text-center">{typeof value === 'number' ? `$${value.toFixed(2)}` : 'N/A'}</div>;
+    },
     meta: {
       mobileHidden: true, // Hide on mobile
     },

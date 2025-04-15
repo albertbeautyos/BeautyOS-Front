@@ -11,8 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Client } from '@/services/clients';
 // Import Client type from the columns definition in the same directory
-import { Client } from "./columns";
 
 // Delete Confirmation Dialog Component
 interface ClientDeleteDialogProps {
@@ -37,7 +37,7 @@ export const ClientDeleteDialog: React.FC<ClientDeleteDialogProps> = ({
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete the client
-            <span className="font-semibold"> {clientToDelete?.first_name} {clientToDelete?.last_name}</span>.
+            <span className="font-semibold"> {clientToDelete?.firstName} {clientToDelete?.lastName}</span>.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

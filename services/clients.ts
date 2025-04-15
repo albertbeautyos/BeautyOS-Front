@@ -2,14 +2,27 @@
 
 import axiosInstance from "@/api/axiosInstance";
 
-// Should be consistent with the type used in the table columns definition
+// Updated Client interface to match the API response structure
 export interface Client {
-  id: string; // Assuming API uses string IDs
-  first_name: string;
-  last_name: string;
+  id: string;
+  firstName: string; // Changed from first_name
+  lastName: string;  // Changed from last_name
   email: string;
-  contact: string;
-  last_visit: string | Date; // Assuming API might return string or Date
+  phone: string;     // Changed from contact
+  showRate?: number; // Added field, assumed optional for safety
+  avgVisit?: number; // Added field, assumed optional for safety
+  avgVisitValue?: number; // Added field, assumed optional for safety
+  // Removed last_visit as it's not in the new structure
+}
+
+// Interface for the overall API response structure
+interface GetClientsResponse {
+    metadata: {
+        totalRecords: number;
+        pageSize: number;
+        page: number;
+    };
+    records: Client[];
 }
 
 // Define the structure for data needed to create a new client (omit server-generated fields like id, last_visit)
@@ -47,9 +60,10 @@ export interface NewClientData {
  */
 export const getClients = async (): Promise<Client[]> => {
   try {
-    const response = await axiosInstance.get<Client[]>('clients');
-    // Perform any data transformation if needed, e.g., converting date strings
-    return response.data;
+    // Expect the nested structure based on the provided JSON
+    const response = await axiosInstance.get<GetClientsResponse>('clients');
+    // Return only the records array
+    return response.data.records;
   } catch (error) {
     console.error("API Error fetching clients:", error);
     // Re-throw the error or handle it as needed for UI feedback

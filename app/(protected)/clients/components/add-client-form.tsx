@@ -163,7 +163,7 @@ export function AddClientForm({
             // ADD LOGIC
             console.log("Adding client:", dataPayload);
             const addedClient = await addClient(dataPayload);
-            toast.success("Client Added", { description: `${addedClient.first_name} ${addedClient.last_name} has been successfully added.` });
+            toast.success("Client Added", { description: `${addedClient.firstName} ${addedClient.lastName} has been successfully added.` });
             form.reset();
             onSuccess?.(addedClient);
         }

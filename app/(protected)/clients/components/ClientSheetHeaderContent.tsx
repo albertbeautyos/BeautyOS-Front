@@ -6,8 +6,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-// Import Client from columns with an alias
-import { Client as TableClient } from "./columns";
+// Import Client directly
+import { Client } from "@/services/clients";
 import { Mail, Phone, Bell, Edit } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StarIcon } from './StarIcon'; // Import StarIcon from its file
@@ -16,17 +16,14 @@ type SheetMode = 'add' | 'view' | 'edit' | null;
 
 // Define props for the header component
 interface ClientSheetHeaderContentProps {
-    selectedClient: TableClient; // Assuming selectedClient is always present when this is rendered
-    staticData: { // Pass the static data as a prop
-        points: number;
-        visits: number;
-        rating: number;
-        ratingCount: number;
-        showRate: number;
-        avgVisitWeeks: number;
-        avgVisitValue: number;
+    selectedClient: Client; // Use imported Client type
+    staticData: { // Pass the static data as a prop - Removed points, visits, rating
+        ratingCount: number; // Keep example/static data
+        showRate: number; // From Client type or static
+        avgVisitWeeks: number; // Example/static data
+        avgVisitValue: number; // From Client type or static
     };
-    onChangeMode: (mode: SheetMode, client?: TableClient | null) => void;
+    onChangeMode: (mode: SheetMode, client?: Client | null) => void; // Use imported Client type
     onSetMobileTab?: (tab: string) => void; // Optional: only for mobile edit button
 }
 
@@ -48,15 +45,13 @@ const ClientSheetHeaderContent: React.FC<ClientSheetHeaderContentProps> = ({
         <SheetHeader className="p-2.5 border-b bg-muted/30 space-y-2 flex-shrink-0">
             <div className="flex items-center gap-2">
                 <Avatar className="h-12 w-12 border">
-                    <AvatarImage src={undefined} alt={`${selectedClient.first_name} ${selectedClient.last_name}`} />
-                    <AvatarFallback className="text-lg">{selectedClient.first_name?.[0]}{selectedClient.last_name?.[0]}</AvatarFallback>
+                    <AvatarImage src={undefined} alt={`${selectedClient.firstName} ${selectedClient.lastName}`} />
+                    <AvatarFallback className="text-lg">{selectedClient.firstName?.[0]}{selectedClient.lastName?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                    <SheetTitle className="text-lg font-semibold leading-tight">{selectedClient.first_name} {selectedClient.last_name}</SheetTitle>
+                    <SheetTitle className="text-lg font-semibold leading-tight">{selectedClient.firstName} {selectedClient.lastName}</SheetTitle>
                     <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground mt-0.5">
-                        <span>{staticData.points} PTS</span><span className="mx-0.5">&bull;</span>
-                        <span>{staticData.visits} VST</span><span className="mx-0.5">&bull;</span>
-                        <span className="flex items-center gap-0.5"><StarIcon className="w-3 h-3 fill-yellow-400 text-yellow-400" />{staticData.rating}({staticData.ratingCount})</span>
+                        {selectedClient.email && <span>{selectedClient.email}</span>}
                     </div>
                 </div>
                 <div className="flex justify-end gap-1 pr-1" >

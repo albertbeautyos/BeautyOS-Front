@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet"; // Only need Sheet itself here
 import { TableSkeleton } from "@/components/table-skeleton";
 import { DataTableContent } from './data-table-content';
-import { Client as TableClient, columns } from "./components/columns";
-import { NewClientData, Client as ServiceClient } from '@/services/clients';
+import {  columns } from "./components/columns";
+import { Client, getClients, NewClientData, Client as ServiceClient } from '@/services/clients';
 import { Toaster } from "@/components/ui/sonner";
 import { PlusCircle } from 'lucide-react';
 import { toast } from "sonner";
@@ -19,229 +19,229 @@ import { ClientDeleteDialog } from './components/ClientDeleteDialog';
 type SheetMode = 'add' | 'view' | 'edit' | null;
 
 // Simulate fetching data - Replace this with your actual data fetching logic
-async function getFakeClients(): Promise<TableClient[]> {
-  // Updated Dummy Data matching the new Client type:
-  return [
-    {
-      id: "CLI-001",
-      first_name: "John",
-      last_name: "Doe",
-      email: "john.doe@example.com",
-      contact: "123-456-7890",
-      // Added new fields
-      visits: 25,
-      rating: 4.5,
-      points: 1250,
-    },
-    {
-      id: "CLI-002",
-      first_name: "Jane",
-      last_name: "Smith",
-      email: "jane.smith@test.co",
-      contact: "987-654-3210",
-      visits: 12,
-      rating: 4.8,
-      points: 600,
-    },
-    {
-      id: "CLI-003",
-      first_name: "Peter",
-      last_name: "Jones",
-      email: "peter.jones@sample.net",
-      contact: "555-123-4567",
-      visits: 5,
-      rating: 4.2,
-      points: 250,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    },
-    {
-      id: "CLI-004",
-      first_name: "Alice",
-      last_name: "Brown",
-      email: "alice.b@mail.org",
-      contact: "111-222-3333",
-      visits: 30,
-      rating: 5.0,
-      points: 1500,
-    }
-  ];
-}
+// async function getFakeClients(): Promise<Client[]> {
+//   // Updated Dummy Data matching the new Client type:
+//   return [
+//     {
+//       id: "CLI-001",
+//       first_name: "John",
+//       last_name: "Doe",
+//       email: "john.doe@example.com",
+//       contact: "123-456-7890",
+//       // Added new fields
+//       visits: 25,
+//       rating: 4.5,
+//       points: 1250,
+//     },
+//     {
+//       id: "CLI-002",
+//       first_name: "Jane",
+//       last_name: "Smith",
+//       email: "jane.smith@test.co",
+//       contact: "987-654-3210",
+//       visits: 12,
+//       rating: 4.8,
+//       points: 600,
+//     },
+//     {
+//       id: "CLI-003",
+//       first_name: "Peter",
+//       last_name: "Jones",
+//       email: "peter.jones@sample.net",
+//       contact: "555-123-4567",
+//       visits: 5,
+//       rating: 4.2,
+//       points: 250,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     },
+//     {
+//       id: "CLI-004",
+//       first_name: "Alice",
+//       last_name: "Brown",
+//       email: "alice.b@mail.org",
+//       contact: "111-222-3333",
+//       visits: 30,
+//       rating: 5.0,
+//       points: 1500,
+//     }
+//   ];
+// }
 
 
 // --- Main Page Component (Refactored) ---
 export default function DashboardClientsPage() {
-  const [clientData, setClientData] = useState<TableClient[]>([]);
+  const [clientData, setClientData] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Sheet state
   const [sheetMode, setSheetMode] = useState<SheetMode>(null);
-  const [selectedClient, setSelectedClient] = useState<TableClient | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   // Delete confirmation state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [clientToDelete, setClientToDelete] = useState<TableClient | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
 
   // --- WORKAROUND for lingering pointer-events: none on body ---
@@ -263,7 +263,7 @@ export default function DashboardClientsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getFakeClients(); // Use the fake data function
+      const data = await getClients(); // Use the fake data function
       setClientData(data);
     } catch (err) {
       console.error("Failed to load client data:", err);
@@ -289,14 +289,14 @@ export default function DashboardClientsPage() {
   }, [clientData, searchTerm]);
 
   // --- Sheet Handlers ---
-  const handleOpenSheet = useCallback((mode: SheetMode, client: TableClient | null = null) => {
+  const handleOpenSheet = useCallback((mode: SheetMode, client: Client | null = null) => {
     console.log(`Opening sheet: mode=${mode}, client=`, client); // Debug log
     setSheetMode(mode);
     setSelectedClient(client);
     setIsSheetOpen(true);
   }, []);
 
-  const handleChangeSheetMode = useCallback((mode: SheetMode, client: TableClient | null = selectedClient) => {
+  const handleChangeSheetMode = useCallback((mode: SheetMode, client: Client | null = selectedClient) => {
     console.log(`Changing sheet mode: mode=${mode}, client=`, client); // Debug log
     // Only change mode and potentially the client, don't affect isSheetOpen
     setSheetMode(mode);
@@ -314,16 +314,16 @@ export default function DashboardClientsPage() {
   }, []);
 
   // --- Table Action Handlers (passed via meta) ---
-  const handleViewClient = useCallback((client: TableClient) => {
+  const handleViewClient = useCallback((client: Client) => {
     handleOpenSheet('view', client);
   }, [handleOpenSheet]);
 
-  const handleEditClient = useCallback((client: TableClient) => {
+  const handleEditClient = useCallback((client: Client) => {
     handleOpenSheet('edit', client);
   }, [handleOpenSheet]);
 
   // Handler to initiate delete (used by both table row and sheet button)
-  const handleDeleteRequest = useCallback((client: TableClient | null) => {
+  const handleDeleteRequest = useCallback((client: Client | null) => {
     if (!client) return;
     setClientToDelete(client);
     setIsDeleteDialogOpen(true);
@@ -337,7 +337,7 @@ export default function DashboardClientsPage() {
       // --- ACTUAL DELETE API CALL (Placeholder) ---
       // await deleteClientService(clientToDelete.id); // Replace with actual service call
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call delay
-      toast.success("Client Deleted", { description: `${clientToDelete.first_name} ${clientToDelete.last_name} has been deleted.` });
+      toast.success("Client Deleted", { description: `${clientToDelete.firstName} ${clientToDelete.lastName} has been deleted.` });
       loadData(); // Refresh list after successful delete
     } catch (error) {
       console.error("Failed to delete client:", error);
@@ -357,7 +357,7 @@ export default function DashboardClientsPage() {
   const tableMeta = useMemo(() => ({
     viewClient: handleViewClient,
     editClient: handleEditClient,
-    deleteClient: (client: TableClient) => handleDeleteRequest(client), // Pass client from row
+    deleteClient: (client: Client) => handleDeleteRequest(client), // Use imported Client type
   }), [handleViewClient, handleEditClient, handleDeleteRequest]);
 
   // --- Component Handlers passed to Children ---
@@ -369,7 +369,7 @@ export default function DashboardClientsPage() {
     if (sheetMode === 'add') {
         handleCloseSheet(); // Close after adding
     } else if (sheetMode === 'edit') {
-        handleChangeSheetMode('view', newOrUpdatedClient as TableClient); // Switch to view mode after editing
+        handleChangeSheetMode('view', newOrUpdatedClient as Client); // Use imported Client type
     }
   };
 

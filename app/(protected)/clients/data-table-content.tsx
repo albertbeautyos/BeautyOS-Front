@@ -1,7 +1,7 @@
 "use client"
 import { DataTable } from "@/components/data-table"
 import type { ColumnDef, TableMeta } from "@tanstack/react-table"
-import { Client } from "./components/columns"
+import { Client } from "@/services/clients"
 
 // Define the expected meta structure based on columns.tsx
 interface ClientTableMeta {
