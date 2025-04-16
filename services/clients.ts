@@ -163,6 +163,19 @@ export const updateClient = async (id: string, clientData: Partial<NewClientData
   }
 };
 
-// TODO: Add function for deleting (DELETE /clients/:id) clients as needed.
+/**
+ * Deletes a client by ID via the API.
+ * @param id - The ID of the client to delete.
+ * @returns A promise that resolves when the deletion is successful.
+ * @throws Throws an error if the API call fails.
+ */
+export const deleteClient = async (id: string): Promise<void> => {
+  try {
+    await axiosInstance.delete(`/clients/${id}`);
+  } catch (error) {
+    console.error(`API Error deleting client with ID ${id}:`, error);
+    throw new Error('Failed to delete client. Please try again.');
+  }
+};
 
 

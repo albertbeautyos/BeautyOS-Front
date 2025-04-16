@@ -7,7 +7,7 @@ import { Sheet } from "@/components/ui/sheet"; // Only need Sheet itself here
 import { TableSkeleton } from "@/components/table-skeleton";
 import { DataTableContent } from './data-table-content';
 import {  columns } from "./components/columns";
-import { Client, getClients, NewClientData, Client as ServiceClient, getClientById, updateClient } from '@/services/clients';
+import { Client, getClients, NewClientData, Client as ServiceClient, getClientById, updateClient, deleteClient } from '@/services/clients';
 import { Toaster } from "@/components/ui/sonner";
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { toast } from "sonner";
@@ -151,9 +151,8 @@ export default function DashboardClientsPage() {
     if (!clientToDelete) return;
     console.log("Confirming delete for:", clientToDelete.id); // Keep log for debugging
     try {
-      // --- ACTUAL DELETE API CALL (Placeholder) ---
-      // await deleteClientService(clientToDelete.id); // Replace with actual service call
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call delay
+      // Use the actual deleteClient service
+      await deleteClient(clientToDelete.id);
       toast.success("Client Deleted", { description: `${clientToDelete.firstName} ${clientToDelete.lastName} has been deleted.` });
       loadData(); // Refresh list after successful delete
     } catch (error) {
