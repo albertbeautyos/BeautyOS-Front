@@ -3,39 +3,25 @@
 import * as React from "react"
 import {
   ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
   flexRender,
-  getCoreRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  getSortedRowModel,
-  useReactTable,
+  Table,
   TableMeta,
   Header,
   Cell,
 } from "@tanstack/react-table"
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 // Commenting out imports for components that might not exist yet
 // import { DataTablePagination } from "@/components/data-table-pagination"
 // import { DataTableToolbar } from "@/components/data-table-toolbar"
 
-import { Checkbox } from "@/components/ui/checkbox"
-import { DataTableColumnHeader } from "@/components/data-table-column-header"
-import { DataTableRowActions } from "@/components/data-table-row-actions"
-// Removed DataTablePagination import
 import { DataTableColumnToggle } from "./data-table-column-toggle"
 import { cn } from "@/lib/utils"
 
-// Update Props Interface to be generic and accept columns/data and meta
+// Update Props Interface to accept a table instance
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  meta?: TableMeta<TData>
-  // Removed initialPageSize and enablePagination props
+  table: Table<TData>
 }
 
 // Helper function to check mobile hidden meta
@@ -44,46 +30,16 @@ const isMobileHidden = <TData, TValue>(item: Header<TData, TValue> | Cell<TData,
     return !!item.column.columnDef.meta?.mobileHidden;
 };
 
-// Update DataTable component to use TanStack Table
+// Update DataTable component to use the passed-in table instance
 export function DataTable<TData, TValue>({
   columns,
-  data,
-  meta,
+  table,
 }: DataTableProps<TData, TValue>) {
-  const [rowSelection, setRowSelection] = React.useState({})
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [sorting, setSorting] = React.useState<SortingState>([])
-
-  const table = useReactTable({
-    data,
-    columns,
-    meta,
-    // Removed initialState with pagination
-    state: {
-      sorting,
-      columnVisibility,
-      rowSelection,
-      columnFilters,
-    },
-    enableRowSelection: true,
-    onRowSelectionChange: setRowSelection,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    // Removed getPaginationRowModel
-    getSortedRowModel: getSortedRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-  })
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex flex-1 items-center space-x-2">
-          {/* Add filtering components here later if needed */}
+          {/* Add filtering components here later if needed, driven by the passed table instance */}
         </div>
         {/* Conditionally render column toggle - hide on mobile */}
         <div className="hidden md:block">
@@ -92,7 +48,7 @@ export function DataTable<TData, TValue>({
       </div>
 
        <div className="rounded-md border">
-        <Table>
+        <UITable>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -142,7 +98,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={table.getAllColumns().length}
                   className="h-24 text-center"
                 >
                   No results.
@@ -150,10 +106,10 @@ export function DataTable<TData, TValue>({
               </TableRow>
             )}
           </TableBody>
-        </Table>
+        </UITable>
       </div>
 
-      {/* Removed DataTablePagination component */}
+      {/* Pagination is handled by the parent */}
     </div>
   )
 }

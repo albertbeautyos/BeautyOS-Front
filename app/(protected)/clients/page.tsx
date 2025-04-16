@@ -7,7 +7,7 @@ import { Sheet } from "@/components/ui/sheet"; // Only need Sheet itself here
 import { TableSkeleton } from "@/components/table-skeleton";
 import { DataTableContent } from './data-table-content';
 import { columns } from "./components/columns";
-import { Client, getClients, NewClientData, Client as ServiceClient, getClientById, updateClient, deleteClient } from '@/services/clients';
+import { Client, getClients, NewClientData, getClientById, updateClient, deleteClient } from '@/services/clients';
 import { Toaster } from "@/components/ui/sonner";
 import { PlusCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from "sonner";
@@ -15,6 +15,15 @@ import { toast } from "sonner";
 import { ClientSheetContent } from './components/ClientSheetContent';
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'; // Import the generic dialog
 import { LoadingOverlay } from '@/components/shared/LoadingOverlay'; // Import the generic overlay
+import { DataTablePagination } from '@/components/data-table-pagination'; // Import DataTablePagination
+// Import TanStack Table hooks and types
+import {
+  useReactTable,
+  getCoreRowModel,
+  getPaginationRowModel,
+  type PaginationState, // Import PaginationState type
+  // Add other necessary imports if needed later (e.g., sorting, filtering)
+} from '@tanstack/react-table';
 
 type SheetMode = 'add' | 'view' | 'edit' | null;
 
@@ -25,18 +34,17 @@ export default function DashboardClientsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(0); // 0-indexed for internal calculations
-  const [pageSize, setPageSize] = useState(10);
-  const [totalRecords, setTotalRecords] = useState(0);
+  // --- Removed old Pagination state ---
+  // const [currentPage, setCurrentPage] = useState(0);
+  // const [pageSize, setPageSize] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0); // Keep totalRecords for pageCount calculation
 
   // Debounce search with useRef and setTimeout
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
 
-  // Add a page loading state for view action
+  // Page/Sheet specific loading states
   const [isPageLoading, setIsPageLoading] = useState(false);
-  // Add isPending and startTransition for client updates
   const [isPending, startTransition] = useTransition();
 
   // Sheet state
@@ -48,32 +56,87 @@ export default function DashboardClientsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
-  // Setup debounced search term
+  // --- TanStack Table State ---
+  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+  // Add other state if needed (sorting, filters etc.)
+
+  // --- Action Handlers (Define BEFORE useReactTable) ---
+  // Moved handleViewClient, handleEditClient, handleDeleteRequest here
+  const handleOpenSheet = useCallback((mode: SheetMode, client: Client | null = null) => {
+    setSheetMode(mode);
+    setSelectedClient(client);
+    setIsSheetOpen(true);
+  }, []); // Depends only on setters
+
+  const handleViewClient = useCallback(async (client: Client) => {
+    try {
+      setIsPageLoading(true);
+      const freshClientData = await getClientById(client.id);
+      handleOpenSheet('view', freshClientData);
+    } catch (error) {
+      console.error(`Error fetching client with ID ${client.id}:`, error);
+      toast.error("Error Loading Client", {
+        description: error instanceof Error ? error.message : "Failed to load client details"
+      });
+      handleOpenSheet('view', client); // Fallback
+    } finally {
+      setIsPageLoading(false);
+    }
+  }, [handleOpenSheet]); // Depends on handleOpenSheet
+
+  const handleEditClient = useCallback((client: Client) => {
+    handleOpenSheet('edit', client);
+  }, [handleOpenSheet]); // Depends on handleOpenSheet
+
+  const handleDeleteRequest = useCallback((client: Client | null) => {
+    if (!client) return;
+    setClientToDelete(client);
+    setIsDeleteDialogOpen(true);
+  }, []); // Depends only on setters
+
+  // --- TanStack Table Instance ---
+  const table = useReactTable<Client>({
+    data: clientData ?? [], // Use fetched data
+    columns,
+    pageCount: Math.ceil(totalRecords / pageSize), // Calculate page count based on total records
+    state: {
+      pagination: { pageIndex, pageSize },
+      // Add other states like sorting, columnFilters, visibility
+    },
+    onPaginationChange: setPagination, // Connect state setter
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(), // Use pagination row model
+    manualPagination: true, // Enable manual pagination as data is fetched server-side
+    // Add manualSorting, manualFiltering if implementing server-side for those
+    // Provide meta for actions
+    meta: useMemo(() => ({
+        viewClient: handleViewClient,
+        editClient: handleEditClient,
+        deleteClient: (client: Client) => handleDeleteRequest(client),
+    }), [handleViewClient, handleEditClient, handleDeleteRequest]), // Keep meta dependencies
+    debugTable: process.env.NODE_ENV === 'development', // Optional: Enable debug logs in dev
+  });
+
+  // --- Debounced Search Effect ---
   useEffect(() => {
-    // Clear any existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-
     if (searchTerm === "") {
-      // If search is cleared, update immediately without debounce
       setDebouncedSearchTerm("");
-      setCurrentPage(0); // Reset to first page
+      table.setPageIndex(0); // Reset page index via table instance
     } else {
-      // Otherwise, set a timeout to update after debounce delay
       searchTimeoutRef.current = setTimeout(() => {
         setDebouncedSearchTerm(searchTerm);
-        setCurrentPage(0); // Reset to first page when search term changes
-      }, 500); // 500ms debounce delay
+        table.setPageIndex(0); // Reset page index via table instance
+      }, 500);
     }
-
-    // Cleanup on unmount or when searchTerm changes again before timeout
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchTerm]);
+  }, [searchTerm, table]); // Add table to dependencies
 
   // --- WORKAROUND for lingering pointer-events: none on body ---
   useEffect(() => {
@@ -90,17 +153,12 @@ export default function DashboardClientsPage() {
   // --- END WORKAROUND ---
 
   // --- Data Loading ---
-  const loadData = useCallback(async (search?: string, page: number = 0, size: number = pageSize) => {
+  const loadData = useCallback(async (search?: string, page: number = pageIndex, size: number = pageSize) => {
     setIsLoading(true);
     setError(null);
     try {
-      // Calculate skip value based on page and page size
       const skip = page * size;
-
-      // Use the updated getClients function with pagination
       const response = await getClients(search, skip, size);
-
-      // Set client data and pagination metadata
       setClientData(response.records);
       setTotalRecords(response.metadata.totalRecords);
     } catch (err) {
@@ -109,88 +167,22 @@ export default function DashboardClientsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [pageSize]);
+  }, [pageIndex, pageSize]);
 
-  // Load data when pagination parameters change or search term changes
+  // Load data when pagination or search term changes
   useEffect(() => {
-    // Load data with the current pagination parameters and search term
-    loadData(debouncedSearchTerm, currentPage, pageSize);
-  }, [debouncedSearchTerm, currentPage, pageSize, loadData]);
+    loadData(debouncedSearchTerm, pageIndex, pageSize);
+  }, [loadData, debouncedSearchTerm, pageIndex, pageSize]);
 
-  // Calculate total pages
-  const totalPages = useMemo(() => Math.ceil(totalRecords / pageSize), [totalRecords, pageSize]);
-
-  // Handle page change
-  const handlePageChange = useCallback((newPage: number) => {
-    setCurrentPage(newPage);
-  }, []);
-
-  // Handle page size change
-  const handlePageSizeChange = useCallback((newSize: number) => {
-    setPageSize(newSize);
-    setCurrentPage(0); // Reset to first page when changing page size
-  }, []);
-
-  // --- Filtering Removed (Server-side search) ---
-  const filteredData = clientData; // Use directly since filtering is done server-side
-
-  // --- Sheet Handlers ---
-  const handleOpenSheet = useCallback((mode: SheetMode, client: Client | null = null) => {
-    console.log(`Opening sheet: mode=${mode}, client=`, client); // Debug log
+  // --- Sheet Handlers (Only definitions not needed before table) ---
+  const handleChangeSheetMode = useCallback((mode: SheetMode, client: Client | null = selectedClient) => {
     setSheetMode(mode);
     setSelectedClient(client);
-    setIsSheetOpen(true);
-  }, []);
-
-  const handleChangeSheetMode = useCallback((mode: SheetMode, client: Client | null = selectedClient) => {
-    console.log(`Changing sheet mode: mode=${mode}, client=`, client); // Debug log
-    // Only change mode and potentially the client, don't affect isSheetOpen
-    setSheetMode(mode);
-    setSelectedClient(client); // Update client if provided (e.g., needed for cancel->view)
   }, [selectedClient]);
 
   const handleCloseSheet = useCallback(() => {
-    console.log("Closing sheet"); // Debug log
     setIsSheetOpen(false);
-    // Optionally reset mode and client after a short delay to allow animation
-    // setTimeout(() => {
-    //   setSheetMode(null);
-    //   setSelectedClient(null);
-    // }, 150); // Adjust delay as needed
   }, []);
-
-  // --- Table Action Handlers (passed via meta) ---
-  const handleViewClient = useCallback(async (client: Client) => {
-    try {
-      // Show the page overlay loader instead of table loader
-      setIsPageLoading(true);
-      console.log(`Fetching client data for ID: ${client.id}`);
-
-      const freshClientData = await getClientById(client.id);
-      console.log("Fetched client data:", freshClientData);
-      handleOpenSheet('view', freshClientData);
-    } catch (error) {
-      console.error(`Error fetching client with ID ${client.id}:`, error);
-      toast.error("Error Loading Client", {
-        description: error instanceof Error ? error.message : "Failed to load client details"
-      });
-      // Fall back to using the data from the table if fetch fails
-      handleOpenSheet('view', client);
-    } finally {
-      setIsPageLoading(false);
-    }
-  }, [handleOpenSheet]);
-
-  const handleEditClient = useCallback((client: Client) => {
-    handleOpenSheet('edit', client);
-  }, [handleOpenSheet]);
-
-  // Handler to initiate delete (used by both table row and sheet button)
-  const handleDeleteRequest = useCallback((client: Client | null) => {
-    if (!client) return;
-    setClientToDelete(client);
-    setIsDeleteDialogOpen(true);
-  }, []); // Dependency: none (uses setters)
 
   // --- Delete Confirmation Handler ---
   const confirmDelete = useCallback(async () => {
@@ -200,7 +192,8 @@ export default function DashboardClientsPage() {
       // Use the actual deleteClient service
       await deleteClient(clientToDelete.id);
       toast.success("Client Deleted", { description: `${clientToDelete.firstName} ${clientToDelete.lastName} has been deleted.` });
-      loadData(debouncedSearchTerm, currentPage, pageSize); // Refresh list after successful delete with current pagination
+      // Reload data using current table state
+      loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
       handleCloseSheet(); // Close the sheet after successful deletion
     } catch (error) {
       console.error("Failed to delete client:", error);
@@ -212,8 +205,7 @@ export default function DashboardClientsPage() {
   }, [
     clientToDelete,
     debouncedSearchTerm,
-    currentPage,
-    pageSize,
+    table,
     loadData,
     handleCloseSheet // Add handleCloseSheet to dependencies
   ]); // Dependencies
@@ -223,13 +215,6 @@ export default function DashboardClientsPage() {
     setIsDeleteDialogOpen(false); // Close the dialog
   }, []);
 
-  // Define table meta (remains the same, uses handleDeleteRequest with row.original)
-  const tableMeta = useMemo(() => ({
-    viewClient: handleViewClient,
-    editClient: handleEditClient,
-    deleteClient: (client: Client) => handleDeleteRequest(client), // Use imported Client type
-  }), [handleViewClient, handleEditClient, handleDeleteRequest]);
-
   // --- Component Handlers passed to Children ---
   const handleAddClientSuccess = useCallback((newOrUpdatedClient: NewClientData | Client) => {
 
@@ -238,11 +223,11 @@ export default function DashboardClientsPage() {
       // If we were editing, switch back to view mode with the updated client data
       if (sheetMode === 'edit') {
         handleChangeSheetMode('view', newOrUpdatedClient as Client);
-        // Reload data after successful update
-        loadData(debouncedSearchTerm, currentPage, pageSize);
+        // Reload data using current table state
+        loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
       } else if (sheetMode === 'add') {
         // If we were adding, refresh the list and close the sheet
-        loadData(debouncedSearchTerm, currentPage, pageSize);
+        loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
         handleCloseSheet();
       }
     } else {
@@ -250,7 +235,7 @@ export default function DashboardClientsPage() {
         console.error("handleAddClientSuccess called with unexpected data format:", newOrUpdatedClient);
         toast.error("An unexpected error occurred during the operation.");
         // Optionally refresh data anyway
-        loadData(debouncedSearchTerm, currentPage, pageSize);
+        loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
     }
   }, [
     sheetMode,
@@ -258,8 +243,7 @@ export default function DashboardClientsPage() {
     handleCloseSheet,
     loadData,
     debouncedSearchTerm,
-    currentPage,
-    pageSize,
+    table,
   ]);
 
   const handleRequestDeleteFromSheet = useCallback(() => {
@@ -300,72 +284,20 @@ export default function DashboardClientsPage() {
       {error && <div className="text-red-600 p-4 border border-red-600 bg-red-100 rounded-md">Error: {error}</div>}
 
       {/* Table Area */}
-      <div className="rounded-md border">
+      <div className="rounded-md ">
         {isLoading ? (
           <TableSkeleton />
         ) : (
           <>
-            <DataTableContent columns={columns} data={filteredData} meta={tableMeta} />
+            <DataTableContent columns={columns} table={table} />
 
-            {/* Custom Pagination Controls */}
-            <div className="flex items-center justify-between p-4 border-t">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-muted-foreground">
-                  Page {currentPage + 1} of {totalPages || 1}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  ({totalRecords} total)
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <select
-                  className="h-8 w-20 rounded-md border border-input bg-background text-sm"
-                  value={pageSize}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(0)}
-                  disabled={currentPage === 0}
-                >
-                  First
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 0}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage >= totalPages - 1}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(totalPages - 1)}
-                  disabled={currentPage >= totalPages - 1}
-                >
-                  Last
-                </Button>
-              </div>
+            {/* Use DataTablePagination Component with the real table instance and totalRecords */}
+            <div className="p-4">
+              <DataTablePagination
+                table={table}
+                pageSizeOptions={[5, 10, 20, 50]}
+                totalRecords={totalRecords}
+              />
             </div>
           </>
         )}

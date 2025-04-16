@@ -1,6 +1,6 @@
 "use client"
 import { DataTable } from "@/components/data-table"
-import type { ColumnDef, TableMeta } from "@tanstack/react-table"
+import type { ColumnDef, TableMeta, Table } from "@tanstack/react-table"
 import { Client } from "@/services/clients"
 
 // Define the expected meta structure based on columns.tsx
@@ -12,21 +12,20 @@ interface ClientTableMeta {
 
 interface DataTableContentProps {
   columns: ColumnDef<Client>[]
-  data: Client[]
   meta?: ClientTableMeta
+  table: Table<Client>
 }
 
 export function DataTableContent({
   columns,
-  data,
-  meta
+  meta,
+  table
 }: DataTableContentProps) {
   return (
     <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4  pt-0">
       <DataTable
         columns={columns}
-        data={data}
-        meta={meta}
+        table={table}
       />
     </div>
   )
