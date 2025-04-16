@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format } from "date-fns"; // For date picker
-import { CalendarIcon, Loader2, PencilIcon, XIcon, Trash2, Copy } from 'lucide-react'; // Icons
+import { Loader2, PencilIcon, XIcon, Trash2, Copy } from 'lucide-react'; // Icons
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,8 +17,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Calendar } from "@/components/ui/calendar"; // Added
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"; // Added
 import { addClient, NewClientData, Client, updateClient } from '@/services/clients';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // For conditional classnames
@@ -43,13 +40,35 @@ const formSchema = z.object({
   pronouns: z.string().optional(),
   referredBy: z.string().optional(),
   clientType: z.string().optional(), // Changed from required to optional
-  birthday: z.date().optional(), // Use z.date() for DatePicker
+  birthday: z.date().optional().nullable(), // Allow null for empty input
   address: addressSchema,
 });
 // ---
 
+// Helper function to format Date to YYYY-MM-DD
+const formatDateForInput = (date: Date | undefined | null): string => {
+  if (!date) return "";
+  // Ensure it's a valid date object before formatting
+  if (Object.prototype.toString.call(date) === '[object Date]' && !isNaN(date.getTime())) {
+    return date.toISOString().split('T')[0];
+  }
+  return "";
+};
+
+// Helper function to parse YYYY-MM-DD to Date or null
+const parseDateFromInput = (value: string): Date | null => {
+  if (!value) return null;
+  // Attempt to parse, considering potential timezone issues
+  // Adding time component avoids potential off-by-one day errors
+  const date = new Date(value + 'T00:00:00');
+  if (!isNaN(date.getTime())) {
+      return date;
+  }
+  return null; // Return null if parsing fails
+};
+
 interface AddClientFormProps {
-    initialData?: Partial<NewClientData> & { id?: string }; // Accept initial data with optional string ID
+    initialData?: Partial<NewClientData> & { id?: string; birthday?: string | Date | null }; // Adjust birthday type
     isInitiallyEditing?: boolean; // Control initial mode - THIS WILL NOW BE THE ONLY SOURCE OF TRUTH FOR EDIT STATE
     onSuccess?: (data: NewClientData | Client) => void; // Updated type
     onCancelEdit?: () => void; // Optional callback for cancelling edit
@@ -69,6 +88,13 @@ export function AddClientForm({
 }: AddClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Function to safely create a Date from initial data
+  const getInitialDate = (birthday: string | Date | undefined | null): Date | undefined => {
+    if (!birthday) return undefined;
+    const date = new Date(birthday);
+    return isNaN(date.getTime()) ? undefined : date;
+  }
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? { // Populate with initialData or defaults
@@ -80,8 +106,7 @@ export function AddClientForm({
         pronouns: initialData.pronouns ?? "",
         referredBy: initialData.referredBy ?? "",
         clientType: initialData.clientType ?? "",
-        // Handle date conversion carefully
-        birthday: initialData.birthday ? new Date(initialData.birthday) : undefined,
+        birthday: getInitialDate(initialData.birthday), // Use helper
         address: {
             street: initialData.address?.street ?? "",
             city: initialData.address?.city ?? "",
@@ -112,7 +137,7 @@ export function AddClientForm({
     }
   };
 
-  // Reset form if initialData changes (e.g., navigating between clients)
+  // Reset form if initialData changes
   useEffect(() => {
       if (initialData) {
           form.reset({
@@ -124,7 +149,7 @@ export function AddClientForm({
             pronouns: initialData.pronouns ?? "",
             referredBy: initialData.referredBy ?? "",
             clientType: initialData.clientType ?? "",
-            birthday: initialData.birthday ? new Date(initialData.birthday) : undefined,
+            birthday: getInitialDate(initialData.birthday), // Use helper for reset
             address: {
                 street: initialData.address?.street ?? "",
                 city: initialData.address?.city ?? "",
@@ -140,9 +165,13 @@ export function AddClientForm({
     setIsSubmitting(true);
 
     try {
-        // Create base payload from form values
+        // Create base payload, ensuring birthday is formatted correctly if needed by API
+        // (Assuming API handles Date object or ISO string)
         const dataPayload: NewClientData = {
             ...values,
+            // API service functions already handle Date -> ISO string conversion
+            // No explicit conversion needed here if values.birthday is a Date object
+            birthday: values.birthday ?? undefined, // Send undefined if null
             address: (values.address && Object.values(values.address).some(v => v))
                 ? values.address
                 : undefined,
@@ -152,36 +181,22 @@ export function AddClientForm({
         const isUpdating = initialData && initialData.id && typeof initialData.id === 'string';
 
         if (isUpdating && initialData?.id) {
-            // UPDATE LOGIC - We have an ID, so use updateClient
+            // UPDATE LOGIC
             const updatedClient = await updateClient(initialData.id, dataPayload);
-
-            toast.success("Client Updated", {
-                description: `${updatedClient.firstName} ${updatedClient.lastName} details updated.`
-            });
-
+            toast.success("Client Updated", { description: `${updatedClient.firstName} ${updatedClient.lastName} details updated.` });
             onSuccess?.(updatedClient);
         } else {
-            // ADD LOGIC - Ensure we don't have any ID in the payload
+            // ADD LOGIC
             let finalPayload: NewClientData;
-
-            // Check if somehow there's an id in the dataPayload
             if ('id' in dataPayload) {
-                // Create a type that includes id to support object destructuring
                 const { id, ...cleanDataPayload } = dataPayload as NewClientData & { id: string };
                 finalPayload = cleanDataPayload;
             } else {
-                // No id to remove, proceed normally
                 finalPayload = dataPayload;
             }
-
-            // Create the client with the final clean payload
             const addedClient = await addClient(finalPayload);
-
-            toast.success("Client Added", {
-                description: `${addedClient.firstName} ${addedClient.lastName} has been successfully added.`
-            });
-
-            form.reset();
+            toast.success("Client Added", { description: `${addedClient.firstName} ${addedClient.lastName} has been successfully added.` });
+            form.reset(); // Reset after successful add
             onSuccess?.(addedClient);
         }
     } catch (error) {
@@ -345,47 +360,34 @@ export function AddClientForm({
               </FormItem>
             )}
           />
-           <FormField
+
+          {/* --- Updated Birthday Field --- */}
+          <FormField
             control={form.control}
             name="birthday"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Date of birth</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal", // Ensure button takes full width
-                          !field.value && "text-muted-foreground"
-                        )}
-                        disabled={isDisabled} // Disable trigger too
-                      >
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01") || isDisabled // Disable calendar too
-                      }
-                      initialFocus
+            render={({ field }) => {
+              // Adapt the field props for <input type="date">
+              const { value, onChange, ...rest } = field;
+              return (
+                <FormItem>
+                  <FormLabel>Date of birth</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      {...rest} // Pass rest props like name, onBlur, ref
+                      value={formatDateForInput(value)} // Format Date to YYYY-MM-DD
+                      onChange={(e) => {
+                        const dateValue = parseDateFromInput(e.target.value); // Parse YYYY-MM-DD to Date or null
+                        onChange(dateValue); // Update react-hook-form state
+                      }}
+                      className="block w-full" // Ensure it fills the grid cell
+                      disabled={isDisabled}
                     />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
         </div>
 
