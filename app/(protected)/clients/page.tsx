@@ -13,7 +13,8 @@ import { PlusCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from "sonner";
 // Import the extracted components
 import { ClientSheetContent } from './components/ClientSheetContent';
-import { ClientDeleteDialog } from './components/ClientDeleteDialog';
+import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'; // Import the generic dialog
+import { LoadingOverlay } from '@/components/shared/LoadingOverlay'; // Import the generic overlay
 
 type SheetMode = 'add' | 'view' | 'edit' | null;
 
@@ -200,6 +201,7 @@ export default function DashboardClientsPage() {
       await deleteClient(clientToDelete.id);
       toast.success("Client Deleted", { description: `${clientToDelete.firstName} ${clientToDelete.lastName} has been deleted.` });
       loadData(debouncedSearchTerm, currentPage, pageSize); // Refresh list after successful delete with current pagination
+      handleCloseSheet(); // Close the sheet after successful deletion
     } catch (error) {
       console.error("Failed to delete client:", error);
       toast.error("Error Deleting Client", { description: error instanceof Error ? error.message : "An unexpected error occurred." });
@@ -207,7 +209,14 @@ export default function DashboardClientsPage() {
       setIsDeleteDialogOpen(false); // Close dialog
       setClientToDelete(null); // Clear the client marked for deletion
     }
-  }, [clientToDelete, debouncedSearchTerm, currentPage, pageSize, loadData]); // Dependencies
+  }, [
+    clientToDelete,
+    debouncedSearchTerm,
+    currentPage,
+    pageSize,
+    loadData,
+    handleCloseSheet // Add handleCloseSheet to dependencies
+  ]); // Dependencies
 
   const cancelDelete = useCallback(() => {
     setClientToDelete(null); // Clear client to delete
@@ -259,17 +268,11 @@ export default function DashboardClientsPage() {
 
   return (
     <div className="space-y-4 sm:p-2 p-4 relative"> {/* Added relative for absolute overlay positioning */}
-      {/* Loading Overlay - displayed when viewing a client or updating */}
-      {(isPageLoading || isPending) && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm transition-all duration-300">
-          <div className="bg-background rounded-lg p-6 flex flex-col items-center gap-3 shadow-lg border">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-sm font-medium text-foreground">
-              {isPending ? "Updating client information..." : "Loading client information..."}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Use the generic LoadingOverlay */}
+      <LoadingOverlay
+        isLoading={isPageLoading || isPending}
+        message={isPending ? "Updating client information..." : "Loading client information..."}
+      />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 py-4">
@@ -387,13 +390,17 @@ export default function DashboardClientsPage() {
         />
       </Sheet>
 
-      {/* Delete Confirmation Dialog - Uses the extracted component */}
-      <ClientDeleteDialog
+      {/* Use the generic ConfirmationDialog */}
+      <ConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
-        clientToDelete={clientToDelete}
+        title="Delete Client"
+        description="Are you sure you want to permanently delete this client? This action cannot be undone."
+        itemName={clientToDelete ? `${clientToDelete.firstName} ${clientToDelete.lastName}` : undefined}
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
+        confirmButtonText="Delete"
+        confirmButtonVariant="destructive" // Explicitly set variant
       />
 
       {/* Toaster */}
