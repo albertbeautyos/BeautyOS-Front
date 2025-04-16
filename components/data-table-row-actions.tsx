@@ -26,12 +26,12 @@ export function DataTableRowActions<TData>({
   onEdit,
   onDelete,
 }: DataTableRowActionsProps<TData>) {
-  // Direct calls to props, simplified handlers
+  // Direct calls to handlers
   const handleView = () => {
+    // Simply call the onView handler (which will now show the page loader)
     onView?.();
   };
 
-  // Keep handleEdit for completeness, though not used in current UI
   const handleEdit = () => {
     onEdit?.();
   };

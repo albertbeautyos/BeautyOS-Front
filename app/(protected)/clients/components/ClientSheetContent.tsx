@@ -15,7 +15,6 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ClientSheetHeaderContent, type SheetMode } from './ClientSheetHeaderContent'; // Import the new component and SheetMode type
-import { Loader2 } from "lucide-react";
 
 // Interface for the main component props
 interface ClientSheetContentProps {
@@ -25,19 +24,19 @@ interface ClientSheetContentProps {
     onChangeMode: (mode: SheetMode, client?: Client | null) => void; // Use imported Client type
     onCloseSheet: () => void;
     onRequestDelete?: () => void; // Added prop for delete request from sheet
-    isLoading?: boolean; // Add loading state
+    isLoading?: boolean; // Optional since we use page-level loading overlay now
 }
 
 // Utility function to map Client data to form data structure
 // Input should be the imported Client type
-const mapClientToFormData = (client: Client | null): Partial<NewClientData> | undefined => {
+const mapClientToFormData = (client: Client | null): Partial<NewClientData> & { id?: string } | undefined => {
     if (!client) return undefined;
 
     console.log("Mapping client data to form:", client);
 
     try {
         return {
-            // Map basic client information
+            id: client.id || '',
             firstName: client.firstName,
             lastName: client.lastName,
             phone: client.phone,
@@ -79,7 +78,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
     onChangeMode,
     onCloseSheet,
     onRequestDelete,
-    isLoading
+    ...props
 }) => {
     const [selectedSidebarTab, setSelectedSidebarTab] = useState<string>('DASH'); // Default sidebar tab
     const [selectedMobileTab, setSelectedMobileTab] = useState<string>('INFO'); // Default mobile tab for view/edit
@@ -157,6 +156,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                             onCancelEdit={handleCancelEdit}
                             onRequestDeleteFromForm={onRequestDelete}
                             className="mt-0"
+                            submitButtonLabel={sheetMode === 'edit' ? "Update Client" : "Add Client"}
                         />
                     </>
                 );
@@ -200,14 +200,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-3">
-                            {isLoading ? (
-                                <div className="flex items-center justify-center h-full">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
-                                    <span>Loading client data...</span>
-                                </div>
-                            ) : (
-                                renderMobileTabContent()
-                            )}
+                            {renderMobileTabContent()}
                         </div>
                     </div>
                 </div>
@@ -223,41 +216,35 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                         />
 
                         <div className="flex-1 overflow-y-auto p-3">
-                            {isLoading ? (
-                                <div className="flex items-center justify-center h-full">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
-                                    <span>Loading client data...</span>
-                                </div>
-                            ) : (
-                                <>
-                                    {sheetMode === 'view' && (
-                                        <div className="space-y-3 mb-3">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <Label className="text-xs font-semibold text-muted-foreground">Tags</Label>
-                                                    <div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsHair.map((tag, index) => (<Badge key={`hair-${index}`} variant="secondary" className="text-xs font-semibold px-2 py-0.5 leading-tight">{tag}</Badge>))}</div>
-                                                    <div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsSalon.map((tag, index) => (<Badge key={`salon-${index}`} variant="secondary" className="text-xs font-semibold px-2 py-0.5 leading-tight">{tag}</Badge>))}</div>
-                                                </div>
-                                                <div>
-                                                    <Label className="text-xs font-semibold text-muted-foreground">Last Visited</Label>
-                                                    <p className="text-xs font-semibold mt-1">{StaticClientViewData.addressDisplay}</p>
-                                                </div>
+                            <>
+                                {sheetMode === 'view' && (
+                                    <div className="space-y-3 mb-3">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <Label className="text-xs font-semibold text-muted-foreground">Tags</Label>
+                                                <div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsHair.map((tag, index) => (<Badge key={`hair-${index}`} variant="secondary" className="text-xs font-semibold px-2 py-0.5 leading-tight">{tag}</Badge>))}</div>
+                                                <div className="flex flex-wrap gap-1 mt-1">{StaticClientViewData.tagsSalon.map((tag, index) => (<Badge key={`salon-${index}`} variant="secondary" className="text-xs font-semibold px-2 py-0.5 leading-tight">{tag}</Badge>))}</div>
                                             </div>
-                                            <Separator className="my-2"/>
+                                            <div>
+                                                <Label className="text-xs font-semibold text-muted-foreground">Last Visited</Label>
+                                                <p className="text-xs font-semibold mt-1">{StaticClientViewData.addressDisplay}</p>
+                                            </div>
                                         </div>
-                                    )}
+                                        <Separator className="my-2"/>
+                                    </div>
+                                )}
 
-                                    <AddClientForm
-                                        key={selectedClient.id || 'view-edit-form'}
-                                        initialData={mapClientToFormData(selectedClient)}
-                                        isInitiallyEditing={sheetMode === 'edit'}
-                                        onSuccess={onSuccess}
-                                        onCancelEdit={handleCancelEdit}
-                                        onRequestDeleteFromForm={onRequestDelete}
-                                        className="mt-0"
-                                    />
-                                </>
-                            )}
+                                <AddClientForm
+                                    key={selectedClient.id || 'view-edit-form'}
+                                    initialData={mapClientToFormData(selectedClient)}
+                                    isInitiallyEditing={sheetMode === 'edit'}
+                                    onSuccess={onSuccess}
+                                    onCancelEdit={handleCancelEdit}
+                                    onRequestDeleteFromForm={onRequestDelete}
+                                    className="mt-0"
+                                    submitButtonLabel={sheetMode === 'edit' ? "Update Client" : "Add Client"}
+                                />
+                            </>
                         </div>
                     </div>
 
@@ -288,9 +275,10 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                             key={'add-form'}
                             initialData={undefined}
                             isInitiallyEditing={true}
-                            onSuccess={onSuccess }
+                            onSuccess={onSuccess}
                             onCancelEdit={handleCancelEdit}
                             className="mt-4"
+                            submitButtonLabel="Add Client"
                         />
                     </div>
                 </>

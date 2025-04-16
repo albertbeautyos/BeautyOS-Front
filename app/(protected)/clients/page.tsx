@@ -1,15 +1,15 @@
 "use client"; // Make this a Client Component
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet"; // Only need Sheet itself here
 import { TableSkeleton } from "@/components/table-skeleton";
 import { DataTableContent } from './data-table-content';
 import {  columns } from "./components/columns";
-import { Client, getClients, NewClientData, Client as ServiceClient, getClientById } from '@/services/clients';
+import { Client, getClients, NewClientData, Client as ServiceClient, getClientById, updateClient } from '@/services/clients';
 import { Toaster } from "@/components/ui/sonner";
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Loader2 } from 'lucide-react';
 import { toast } from "sonner";
 // Import the extracted components
 import { ClientSheetContent } from './components/ClientSheetContent';
@@ -18,203 +18,8 @@ import { ClientDeleteDialog } from './components/ClientDeleteDialog';
 
 type SheetMode = 'add' | 'view' | 'edit' | null;
 
-// Simulate fetching data - Replace this with your actual data fetching logic
-// async function getFakeClients(): Promise<Client[]> {
-//   // Updated Dummy Data matching the new Client type:
-//   return [
-//     {
-//       id: "CLI-001",
-//       first_name: "John",
-//       last_name: "Doe",
-//       email: "john.doe@example.com",
-//       contact: "123-456-7890",
-//       // Added new fields
-//       visits: 25,
-//       rating: 4.5,
-//       points: 1250,
-//     },
-//     {
-//       id: "CLI-002",
-//       first_name: "Jane",
-//       last_name: "Smith",
-//       email: "jane.smith@test.co",
-//       contact: "987-654-3210",
-//       visits: 12,
-//       rating: 4.8,
-//       points: 600,
-//     },
-//     {
-//       id: "CLI-003",
-//       first_name: "Peter",
-//       last_name: "Jones",
-//       email: "peter.jones@sample.net",
-//       contact: "555-123-4567",
-//       visits: 5,
-//       rating: 4.2,
-//       points: 250,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     },
-//     {
-//       id: "CLI-004",
-//       first_name: "Alice",
-//       last_name: "Brown",
-//       email: "alice.b@mail.org",
-//       contact: "111-222-3333",
-//       visits: 30,
-//       rating: 5.0,
-//       points: 1500,
-//     }
-//   ];
-// }
+
+
 
 
 // --- Main Page Component (Refactored) ---
@@ -223,6 +28,11 @@ export default function DashboardClientsPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Add a page loading state for view action
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  // Add isPending and startTransition for client updates
+  const [isPending, startTransition] = useTransition();
 
   // Sheet state
   const [sheetMode, setSheetMode] = useState<SheetMode>(null);
@@ -306,9 +116,10 @@ export default function DashboardClientsPage() {
   // --- Table Action Handlers (passed via meta) ---
   const handleViewClient = useCallback(async (client: Client) => {
     try {
-      // Fetch the latest client data by ID before showing the client sheet
+      // Show the page overlay loader instead of table loader
+      setIsPageLoading(true);
       console.log(`Fetching client data for ID: ${client.id}`);
-      setIsLoading(true);
+
       const freshClientData = await getClientById(client.id);
       console.log("Fetched client data:", freshClientData);
       handleOpenSheet('view', freshClientData);
@@ -320,7 +131,7 @@ export default function DashboardClientsPage() {
       // Fall back to using the data from the table if fetch fails
       handleOpenSheet('view', client);
     } finally {
-      setIsLoading(false);
+      setIsPageLoading(false);
     }
   }, [handleOpenSheet]);
 
@@ -367,24 +178,64 @@ export default function DashboardClientsPage() {
   }), [handleViewClient, handleEditClient, handleDeleteRequest]);
 
   // --- Component Handlers passed to Children ---
-  const handleAddClientSuccess = (newOrUpdatedClient: NewClientData | ServiceClient) => {
+  const handleAddClientSuccess = useCallback((newOrUpdatedClient: NewClientData | ServiceClient) => {
     console.log("Add/Update Success:", newOrUpdatedClient);
-    // Refetch or update data
-    loadData(); // Example: refetch all data
-    // Decide whether to close the sheet or switch mode
-    if (sheetMode === 'add') {
-        handleCloseSheet(); // Close after adding
-    } else if (sheetMode === 'edit') {
-        handleChangeSheetMode('view', newOrUpdatedClient as Client); // Use imported Client type
+
+    // If we're updating a client (not adding a new one)
+    if (sheetMode === 'edit' && selectedClient) {
+      setIsPageLoading(true);
+
+      // Use startTransition to handle the client update
+      startTransition(async () => {
+        try {
+          // Only attempt update if we have client ID
+          if ('id' in newOrUpdatedClient) {
+            // This is a full Client object, no need to update
+            handleChangeSheetMode('view', newOrUpdatedClient as Client);
+          } else if (selectedClient.id) {
+            // This is NewClientData, we need to update and get the updated client
+            const updatedClient = await updateClient(selectedClient.id, newOrUpdatedClient as NewClientData);
+            handleChangeSheetMode('view', updatedClient);
+          }
+          toast.success("Client updated successfully");
+        } catch (error) {
+          console.error("Error updating client:", error);
+          toast.error("Failed to update client", {
+            description: error instanceof Error ? error.message : "An unexpected error occurred"
+          });
+          // Stay in edit mode if update failed
+        } finally {
+          setIsPageLoading(false);
+        }
+      });
+    } else {
+      // For adding new clients, just refresh the data
+      loadData();
+      // Close the sheet if we're adding a new client
+      if (sheetMode === 'add') {
+        handleCloseSheet();
+      }
     }
-  };
+  }, [sheetMode, selectedClient, handleChangeSheetMode, handleCloseSheet, loadData]);
 
   const handleRequestDeleteFromSheet = useCallback(() => {
     handleDeleteRequest(selectedClient);
   }, [handleDeleteRequest, selectedClient]);
 
   return (
-    <div className="space-y-4 sm:p-2 p-4"> {/* Added padding */}
+    <div className="space-y-4 sm:p-2 p-4 relative"> {/* Added relative for absolute overlay positioning */}
+      {/* Loading Overlay - displayed when viewing a client or updating */}
+      {(isPageLoading || isPending) && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm transition-all duration-300">
+          <div className="bg-background rounded-lg p-6 flex flex-col items-center gap-3 shadow-lg border">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm font-medium text-foreground">
+              {isPending ? "Updating client information..." : "Loading client information..."}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 py-4">
         <div className="flex-1"></div> {/* Spacer */}
@@ -426,7 +277,7 @@ export default function DashboardClientsPage() {
             onChangeMode={handleChangeSheetMode}
             onCloseSheet={handleCloseSheet}
             onRequestDelete={handleRequestDeleteFromSheet}
-            isLoading={isLoading && sheetMode === 'view'}
+            isLoading={false} // No longer needed since we use the page overlay
         />
       </Sheet>
 

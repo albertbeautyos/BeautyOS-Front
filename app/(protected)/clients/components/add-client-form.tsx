@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar"; // Added
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"; // Added
-import { addClient, NewClientData, Client } from '@/services/clients';
+import { addClient, NewClientData, Client, updateClient } from '@/services/clients';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // For conditional classnames
 
@@ -49,12 +49,13 @@ const formSchema = z.object({
 // ---
 
 interface AddClientFormProps {
-    initialData?: Partial<NewClientData>; // Accept initial data
+    initialData?: Partial<NewClientData> & { id?: string }; // Accept initial data with optional string ID
     isInitiallyEditing?: boolean; // Control initial mode - THIS WILL NOW BE THE ONLY SOURCE OF TRUTH FOR EDIT STATE
     onSuccess?: (data: NewClientData | Client) => void; // Updated type
     onCancelEdit?: () => void; // Optional callback for cancelling edit
     onRequestDeleteFromForm?: () => void; // New prop for delete action
     className?: string;
+    submitButtonLabel?: string; // Added prop for customizing submit button text
 }
 
 export function AddClientForm({
@@ -63,7 +64,8 @@ export function AddClientForm({
     onSuccess,
     onCancelEdit,
     onRequestDeleteFromForm, // Destructure new prop
-    className
+    className,
+    submitButtonLabel = initialData ? "Save Changes" : "Add Client" // Default label based on mode
 }: AddClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -135,63 +137,61 @@ export function AddClientForm({
   }, [initialData, form.reset]); // form.reset is stable
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // console.log("onSubmit called. Mode:", initialData ? 'update' : 'add', "Values:", values);
     setIsSubmitting(true);
 
-    // --- ORIGINAL LOGIC (Restored) ---
     try {
+        // Create base payload from form values
         const dataPayload: NewClientData = {
             ...values,
             address: (values.address && Object.values(values.address).some(v => v))
                 ? values.address
                 : undefined,
-            // birthday: values.birthday ? values.birthday.toISOString() : undefined, // Keep birthday conversion commented if form handles Date object
         };
 
-        if (initialData && 'id' in initialData && initialData.id) { // Check if initialData has an id for update
-            // UPDATE LOGIC
-            console.log("Updating client (placeholder):", dataPayload);
-            // --- TODO: Implement actual updateClient service call ---
-            // const updatedClient = await updateClient(initialData.id, dataPayload);
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-            // Simulate response, ensure ID is kept - Cast via unknown
-            const updatedClient = { ...initialData, ...dataPayload, id: initialData.id } as unknown as (NewClientData | Client);
-            // -----
-            toast.success("Client Updated", { description: `${dataPayload.firstName} ${dataPayload.lastName} details updated.` });
+        // Determine if we're updating an existing client
+        const isUpdating = initialData && initialData.id && typeof initialData.id === 'string';
+
+        if (isUpdating && initialData?.id) {
+            // UPDATE LOGIC - We have an ID, so use updateClient
+            const updatedClient = await updateClient(initialData.id, dataPayload);
+
+            toast.success("Client Updated", {
+                description: `${updatedClient.firstName} ${updatedClient.lastName} details updated.`
+            });
+
             onSuccess?.(updatedClient);
         } else {
-            // ADD LOGIC
-            console.log("Adding client:", dataPayload);
-            const addedClient = await addClient(dataPayload);
-            toast.success("Client Added", { description: `${addedClient.firstName} ${addedClient.lastName} has been successfully added.` });
+            // ADD LOGIC - Ensure we don't have any ID in the payload
+            let finalPayload: NewClientData;
+
+            // Check if somehow there's an id in the dataPayload
+            if ('id' in dataPayload) {
+                // Create a type that includes id to support object destructuring
+                const { id, ...cleanDataPayload } = dataPayload as NewClientData & { id: string };
+                finalPayload = cleanDataPayload;
+            } else {
+                // No id to remove, proceed normally
+                finalPayload = dataPayload;
+            }
+
+            // Create the client with the final clean payload
+            const addedClient = await addClient(finalPayload);
+
+            toast.success("Client Added", {
+                description: `${addedClient.firstName} ${addedClient.lastName} has been successfully added.`
+            });
+
             form.reset();
             onSuccess?.(addedClient);
         }
     } catch (error) {
       console.error("Failed operation:", error);
-      toast.error(initialData ? "Error Updating Client" : "Error Adding Client", {
+      toast.error(initialData?.id ? "Error Updating Client" : "Error Adding Client", {
         description: error instanceof Error ? error.message : "An unexpected error occurred.",
       });
     } finally {
       setIsSubmitting(false);
     }
-    // --- END ORIGINAL LOGIC ---
-
-    /* --- TEMPORARY SIMPLIFICATION (Removed) ---
-    console.log("Simulating submission delay...");
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log("Simulation complete. Resetting submitting state.");
-    setIsSubmitting(false);
-    if (initialData) {
-        toast.success("Simulated Update Successful");
-        setIsEditing(false);
-        onSuccess?.({ ...initialData, ...values });
-    } else {
-        toast.success("Simulated Add Successful");
-        form.reset();
-        onSuccess?.({ id: `temp-${Date.now()}`, ...values } as unknown as NewClientData);
-    }
-    */
   }
 
   const handleCancelEdit = () => {
@@ -487,7 +487,7 @@ export function AddClientForm({
                     {isSubmitting ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : null}
-                    {initialData ? "Save Changes" : "Add Client"}
+                    {submitButtonLabel}
                 </Button>
             </div>
         )}

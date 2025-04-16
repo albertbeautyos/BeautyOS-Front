@@ -148,7 +148,11 @@ export const updateClient = async (id: string, clientData: Partial<NewClientData
     // Ensure any Date objects are converted to ISO strings
     const dataToSend = {
       ...clientData,
-      birthday: clientData.birthday instanceof Date ? clientData.birthday.toISOString() : clientData.birthday
+      birthday: clientData.birthday instanceof Date ? clientData.birthday.toISOString() : clientData.birthday,
+       address:{ ...clientData.address, location: {
+            coordinates: [0, 0],
+            type: "Point"
+           }  }
     };
 
     const response = await axiosInstance.put<Client>(`/clients/${id}`, dataToSend);
