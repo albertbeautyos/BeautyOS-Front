@@ -70,13 +70,22 @@ export interface NewClientData {
 
 /**
  * Fetches a list of clients from the API.
+ * @param searchQuery - Optional search query to filter clients
  * @returns A promise that resolves to an array of Client objects.
  * @throws Throws an error if the API call fails.
  */
-export const getClients = async (): Promise<Client[]> => {
+export const getClients = async (searchQuery?: string): Promise<Client[]> => {
   try {
+    // Construct URL with query parameters
+    let url = 'clients?top=1000000';
+
+    // Add search query parameter if provided
+    if (searchQuery && searchQuery.trim() !== '') {
+      url += `&search=${encodeURIComponent(searchQuery.trim())}`;
+    }
+
     // Expect the nested structure based on the provided JSON
-    const response = await axiosInstance.get<GetClientsResponse>('clients?top=1000000 ');
+    const response = await axiosInstance.get<GetClientsResponse>(url);
     // Return only the records array
     return response.data.records;
   } catch (error) {

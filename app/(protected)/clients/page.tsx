@@ -1,6 +1,6 @@
 "use client"; // Make this a Client Component
 
-import React, { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useTransition, useRef } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet"; // Only need Sheet itself here
@@ -29,6 +29,10 @@ export default function DashboardClientsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Debounce search with useRef and setTimeout
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
+
   // Add a page loading state for view action
   const [isPageLoading, setIsPageLoading] = useState(false);
   // Add isPending and startTransition for client updates
@@ -43,6 +47,30 @@ export default function DashboardClientsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
+  // Setup debounced search term
+  useEffect(() => {
+    // Only debounce when searchTerm changes after initial render
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Skip debouncing on initial render
+    if (searchTerm === "") {
+      return;
+    }
+
+    // Set a new timeout to update the debounced search term
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // 500ms debounce delay
+
+    // Cleanup on unmount or when searchTerm changes
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchTerm]);
 
   // --- WORKAROUND for lingering pointer-events: none on body ---
   useEffect(() => {
@@ -59,11 +87,11 @@ export default function DashboardClientsPage() {
   // --- END WORKAROUND ---
 
   // --- Data Loading ---
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (search?: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getClients(); // Use the fake data function
+      const data = await getClients(search); // Pass search parameter to getClients
       setClientData(data);
     } catch (err) {
       console.error("Failed to load client data:", err);
@@ -73,20 +101,23 @@ export default function DashboardClientsPage() {
     }
   }, []);
 
+  // Initial data load on mount only
   useEffect(() => {
+    alert('hwy')
     loadData();
-  }, [loadData]);
+    // This useEffect has no dependencies to ensure it only runs once on mount
+  }, []);
 
-  // --- Filtering ---
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return clientData;
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return clientData.filter(client =>
-      Object.values(client).some(value =>
-        String(value).toLowerCase().includes(lowerCaseSearchTerm)
-      )
-    );
-  }, [clientData, searchTerm]);
+  // Load data when debounced search term changes (not on initial render)
+  useEffect(() => {
+    // Skip the first render
+    if (debouncedSearchTerm !== "") {
+      loadData(debouncedSearchTerm);
+    }
+  }, [debouncedSearchTerm, loadData]);
+
+  // --- Filtering Removed (Server-side search) ---
+  const filteredData = clientData; // Use directly since filtering is done server-side
 
   // --- Sheet Handlers ---
   const handleOpenSheet = useCallback((mode: SheetMode, client: Client | null = null) => {
@@ -238,12 +269,20 @@ export default function DashboardClientsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 py-4">
         <div className="flex-1"></div> {/* Spacer */}
-        <Input
-          placeholder="Search clients..."
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-          className="w-full sm:max-w-sm" // Full width on small screens
-        />
+        <div className="relative w-full sm:max-w-sm">
+          <Input
+            placeholder="Search clients..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="w-full" // Full width on small screens
+          />
+          {/* Search indicator */}
+          {debouncedSearchTerm !== searchTerm && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </div>
         <Button onClick={() => handleOpenSheet('add')} className="w-full sm:w-auto"> {/* Full width on small screens */}
           <PlusCircle className="mr-2 h-4 w-4" /> Add Client
         </Button>
