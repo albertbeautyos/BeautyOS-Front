@@ -16,10 +16,18 @@ interface DataTableContentProps {
   meta?: ClientTableMeta
 }
 
-export function DataTableContent({ columns, data, meta }: DataTableContentProps) {
+export function DataTableContent({
+  columns,
+  data,
+  meta
+}: DataTableContentProps) {
   return (
     <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4  pt-0">
-      <DataTable columns={columns} data={data} meta={meta} />
+      <DataTable
+        columns={columns}
+        data={data}
+        meta={meta}
+      />
     </div>
   )
 }

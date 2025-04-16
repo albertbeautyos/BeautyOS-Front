@@ -11,7 +11,6 @@ import {
   getFacetedRowModel,
   getFacetedUniqueValues,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   TableMeta,
@@ -27,7 +26,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { DataTableColumnHeader } from "@/components/data-table-column-header"
 import { DataTableRowActions } from "@/components/data-table-row-actions"
-import { DataTablePagination } from "./data-table-pagination"
+// Removed DataTablePagination import
 import { DataTableColumnToggle } from "./data-table-column-toggle"
 import { cn } from "@/lib/utils"
 
@@ -36,7 +35,7 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   meta?: TableMeta<TData>
-  initialPageSize?: number
+  // Removed initialPageSize and enablePagination props
 }
 
 // Helper function to check mobile hidden meta
@@ -50,7 +49,6 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   meta,
-  initialPageSize = 10
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -61,11 +59,7 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     meta,
-    initialState: {
-        pagination: {
-            pageSize: initialPageSize,
-        }
-    },
+    // Removed initialState with pagination
     state: {
       sorting,
       columnVisibility,
@@ -79,7 +73,7 @@ export function DataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    // Removed getPaginationRowModel
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
@@ -159,7 +153,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      <DataTablePagination table={table} />
+      {/* Removed DataTablePagination component */}
     </div>
   )
 }

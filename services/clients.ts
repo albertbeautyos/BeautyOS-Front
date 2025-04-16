@@ -71,13 +71,33 @@ export interface NewClientData {
 /**
  * Fetches a list of clients from the API.
  * @param searchQuery - Optional search query to filter clients
- * @returns A promise that resolves to an array of Client objects.
+ * @param skip - Optional number of records to skip (for pagination)
+ * @param top - Optional number of records to return (for pagination)
+ * @returns A promise that resolves to a paginated response with clients array and metadata.
  * @throws Throws an error if the API call fails.
  */
-export const getClients = async (searchQuery?: string): Promise<Client[]> => {
+export const getClients = async (
+  searchQuery?: string,
+  skip?: number,
+  top: number = 10
+): Promise<{
+  records: Client[];
+  metadata: {
+    totalRecords: number;
+    pageSize: number;
+    page: number;
+  }
+}> => {
   try {
     // Construct URL with query parameters
-    let url = 'clients?top=1000000';
+    let url = 'clients?';
+
+    // Add pagination parameters
+    url += `top=${top}`;
+
+    if (skip !== undefined) {
+      url += `&skip=${skip}`;
+    }
 
     // Add search query parameter if provided
     if (searchQuery && searchQuery.trim() !== '') {
@@ -86,8 +106,12 @@ export const getClients = async (searchQuery?: string): Promise<Client[]> => {
 
     // Expect the nested structure based on the provided JSON
     const response = await axiosInstance.get<GetClientsResponse>(url);
-    // Return only the records array
-    return response.data.records;
+
+    // Return both records and metadata for pagination
+    return {
+      records: response.data.records,
+      metadata: response.data.metadata
+    };
   } catch (error) {
     console.error("API Error fetching clients:", error);
     // Re-throw the error or handle it as needed for UI feedback

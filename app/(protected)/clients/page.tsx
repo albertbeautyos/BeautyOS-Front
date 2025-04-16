@@ -6,21 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet"; // Only need Sheet itself here
 import { TableSkeleton } from "@/components/table-skeleton";
 import { DataTableContent } from './data-table-content';
-import {  columns } from "./components/columns";
+import { columns } from "./components/columns";
 import { Client, getClients, NewClientData, Client as ServiceClient, getClientById, updateClient, deleteClient } from '@/services/clients';
 import { Toaster } from "@/components/ui/sonner";
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from "sonner";
 // Import the extracted components
 import { ClientSheetContent } from './components/ClientSheetContent';
 import { ClientDeleteDialog } from './components/ClientDeleteDialog';
 
-
 type SheetMode = 'add' | 'view' | 'edit' | null;
-
-
-
-
 
 // --- Main Page Component (Refactored) ---
 export default function DashboardClientsPage() {
@@ -28,6 +23,11 @@ export default function DashboardClientsPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0); // 0-indexed for internal calculations
+  const [pageSize, setPageSize] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
 
   // Debounce search with useRef and setTimeout
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -49,22 +49,24 @@ export default function DashboardClientsPage() {
 
   // Setup debounced search term
   useEffect(() => {
-    // Only debounce when searchTerm changes after initial render
+    // Clear any existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Skip debouncing on initial render
     if (searchTerm === "") {
-      return;
+      // If search is cleared, update immediately without debounce
+      setDebouncedSearchTerm("");
+      setCurrentPage(0); // Reset to first page
+    } else {
+      // Otherwise, set a timeout to update after debounce delay
+      searchTimeoutRef.current = setTimeout(() => {
+        setDebouncedSearchTerm(searchTerm);
+        setCurrentPage(0); // Reset to first page when search term changes
+      }, 500); // 500ms debounce delay
     }
 
-    // Set a new timeout to update the debounced search term
-    searchTimeoutRef.current = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 500); // 500ms debounce delay
-
-    // Cleanup on unmount or when searchTerm changes
+    // Cleanup on unmount or when searchTerm changes again before timeout
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
@@ -87,34 +89,46 @@ export default function DashboardClientsPage() {
   // --- END WORKAROUND ---
 
   // --- Data Loading ---
-  const loadData = useCallback(async (search?: string) => {
+  const loadData = useCallback(async (search?: string, page: number = 0, size: number = pageSize) => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getClients(search); // Pass search parameter to getClients
-      setClientData(data);
+      // Calculate skip value based on page and page size
+      const skip = page * size;
+
+      // Use the updated getClients function with pagination
+      const response = await getClients(search, skip, size);
+
+      // Set client data and pagination metadata
+      setClientData(response.records);
+      setTotalRecords(response.metadata.totalRecords);
     } catch (err) {
       console.error("Failed to load client data:", err);
       setError(err instanceof Error ? err.message : "Failed to load clients");
     } finally {
       setIsLoading(false);
     }
+  }, [pageSize]);
+
+  // Load data when pagination parameters change or search term changes
+  useEffect(() => {
+    // Load data with the current pagination parameters and search term
+    loadData(debouncedSearchTerm, currentPage, pageSize);
+  }, [debouncedSearchTerm, currentPage, pageSize, loadData]);
+
+  // Calculate total pages
+  const totalPages = useMemo(() => Math.ceil(totalRecords / pageSize), [totalRecords, pageSize]);
+
+  // Handle page change
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage);
   }, []);
 
-  // Initial data load on mount only
-  useEffect(() => {
-    alert('hwy')
-    loadData();
-    // This useEffect has no dependencies to ensure it only runs once on mount
+  // Handle page size change
+  const handlePageSizeChange = useCallback((newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(0); // Reset to first page when changing page size
   }, []);
-
-  // Load data when debounced search term changes (not on initial render)
-  useEffect(() => {
-    // Skip the first render
-    if (debouncedSearchTerm !== "") {
-      loadData(debouncedSearchTerm);
-    }
-  }, [debouncedSearchTerm, loadData]);
 
   // --- Filtering Removed (Server-side search) ---
   const filteredData = clientData; // Use directly since filtering is done server-side
@@ -185,7 +199,7 @@ export default function DashboardClientsPage() {
       // Use the actual deleteClient service
       await deleteClient(clientToDelete.id);
       toast.success("Client Deleted", { description: `${clientToDelete.firstName} ${clientToDelete.lastName} has been deleted.` });
-      loadData(); // Refresh list after successful delete
+      loadData(debouncedSearchTerm, currentPage, pageSize); // Refresh list after successful delete with current pagination
     } catch (error) {
       console.error("Failed to delete client:", error);
       toast.error("Error Deleting Client", { description: error instanceof Error ? error.message : "An unexpected error occurred." });
@@ -193,7 +207,7 @@ export default function DashboardClientsPage() {
       setIsDeleteDialogOpen(false); // Close dialog
       setClientToDelete(null); // Clear the client marked for deletion
     }
-  }, [clientToDelete, loadData]); // Dependencies
+  }, [clientToDelete, debouncedSearchTerm, currentPage, pageSize, loadData]); // Dependencies
 
   const cancelDelete = useCallback(() => {
     setClientToDelete(null); // Clear client to delete
@@ -208,45 +222,36 @@ export default function DashboardClientsPage() {
   }), [handleViewClient, handleEditClient, handleDeleteRequest]);
 
   // --- Component Handlers passed to Children ---
-  const handleAddClientSuccess = useCallback((newOrUpdatedClient: NewClientData | ServiceClient) => {
-    console.log("Add/Update Success:", newOrUpdatedClient);
+  const handleAddClientSuccess = useCallback((newOrUpdatedClient: NewClientData | Client) => {
 
-    // If we're updating a client (not adding a new one)
-    if (sheetMode === 'edit' && selectedClient) {
-      setIsPageLoading(true);
-
-      // Use startTransition to handle the client update
-      startTransition(async () => {
-        try {
-          // Only attempt update if we have client ID
-          if ('id' in newOrUpdatedClient) {
-            // This is a full Client object, no need to update
-            handleChangeSheetMode('view', newOrUpdatedClient as Client);
-          } else if (selectedClient.id) {
-            // This is NewClientData, we need to update and get the updated client
-            const updatedClient = await updateClient(selectedClient.id, newOrUpdatedClient as NewClientData);
-            handleChangeSheetMode('view', updatedClient);
-          }
-          toast.success("Client updated successfully");
-        } catch (error) {
-          console.error("Error updating client:", error);
-          toast.error("Failed to update client", {
-            description: error instanceof Error ? error.message : "An unexpected error occurred"
-          });
-          // Stay in edit mode if update failed
-        } finally {
-          setIsPageLoading(false);
-        }
-      });
-    } else {
-      // For adding new clients, just refresh the data
-      loadData();
-      // Close the sheet if we're adding a new client
-      if (sheetMode === 'add') {
+    // Check if the returned data has an ID, indicating an update or successful add
+    if ('id' in newOrUpdatedClient) {
+      // If we were editing, switch back to view mode with the updated client data
+      if (sheetMode === 'edit') {
+        handleChangeSheetMode('view', newOrUpdatedClient as Client);
+        // Reload data after successful update
+        loadData(debouncedSearchTerm, currentPage, pageSize);
+      } else if (sheetMode === 'add') {
+        // If we were adding, refresh the list and close the sheet
+        loadData(debouncedSearchTerm, currentPage, pageSize);
         handleCloseSheet();
       }
+    } else {
+        // Fallback/Error case: Should not happen if form logic is correct
+        console.error("handleAddClientSuccess called with unexpected data format:", newOrUpdatedClient);
+        toast.error("An unexpected error occurred during the operation.");
+        // Optionally refresh data anyway
+        loadData(debouncedSearchTerm, currentPage, pageSize);
     }
-  }, [sheetMode, selectedClient, handleChangeSheetMode, handleCloseSheet, loadData]);
+  }, [
+    sheetMode,
+    handleChangeSheetMode,
+    handleCloseSheet,
+    loadData,
+    debouncedSearchTerm,
+    currentPage,
+    pageSize,
+  ]);
 
   const handleRequestDeleteFromSheet = useCallback(() => {
     handleDeleteRequest(selectedClient);
@@ -291,12 +296,75 @@ export default function DashboardClientsPage() {
       {/* Error Display */}
       {error && <div className="text-red-600 p-4 border border-red-600 bg-red-100 rounded-md">Error: {error}</div>}
 
-      {/* Table Area - Remove border here */}
-      <div> {/* Removed rounded-md border */}
+      {/* Table Area */}
+      <div className="rounded-md border">
         {isLoading ? (
           <TableSkeleton />
         ) : (
-          <DataTableContent columns={columns} data={filteredData} meta={tableMeta} />
+          <>
+            <DataTableContent columns={columns} data={filteredData} meta={tableMeta} />
+
+            {/* Custom Pagination Controls */}
+            <div className="flex items-center justify-between p-4 border-t">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage + 1} of {totalPages || 1}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  ({totalRecords} total)
+                </span>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <select
+                  className="h-8 w-20 rounded-md border border-input bg-background text-sm"
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(0)}
+                  disabled={currentPage === 0}
+                >
+                  First
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages - 1}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(totalPages - 1)}
+                  disabled={currentPage >= totalPages - 1}
+                >
+                  Last
+                </Button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
