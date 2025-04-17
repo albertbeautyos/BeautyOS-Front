@@ -73,7 +73,7 @@ export const columns: ColumnDef<Client>[] = [
     cell: ({ row }) => <div>{row.getValue("email")}</div>,
      filterFn: (row, id, value) => String(row.getValue(id)).toLowerCase().includes(String(value).toLowerCase()),
      meta: {
-      mobileHidden: true, // Hide on mobile
+      mobileHidden: false, // Hide on mobile
     },
   },
    {
@@ -91,7 +91,7 @@ export const columns: ColumnDef<Client>[] = [
     ),
     cell: ({ row }) => <div className="text-center">{row.getValue("visits")}</div>,
     meta: {
-      mobileHidden: true, // Hide on mobile
+      mobileHidden: false, // Hide on mobile
     },
   },
   {
@@ -104,7 +104,7 @@ export const columns: ColumnDef<Client>[] = [
       return <div className="text-center">{typeof value === 'number' ? value.toFixed(1) : 'N/A'}</div>;
     },
     meta: {
-      mobileHidden: true, // Hide on mobile
+      mobileHidden: false, // Hide on mobile
     },
   },
   {
@@ -117,7 +117,7 @@ export const columns: ColumnDef<Client>[] = [
         return <div className="text-center">{typeof value === 'number' ? `$${value.toFixed(2)}` : 'N/A'}</div>;
     },
     meta: {
-      mobileHidden: true, // Hide on mobile
+      mobileHidden: false, // Hide on mobile
     },
   },
    {

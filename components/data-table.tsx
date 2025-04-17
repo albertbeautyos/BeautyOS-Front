@@ -42,7 +42,7 @@ export function DataTable<TData, TValue>({
           {/* Add filtering components here later if needed, driven by the passed table instance */}
         </div>
         {/* Conditionally render column toggle - hide on mobile */}
-        <div className="hidden md:block">
+        <div >
             <DataTableColumnToggle table={table} />
         </div>
       </div>
