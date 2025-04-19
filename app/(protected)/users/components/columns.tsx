@@ -4,7 +4,7 @@ import { ColumnDef, RowData } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DataTableColumnHeader } from "@/components/data-table-column-header"
 import { DataTableRowActions } from "@/components/data-table-row-actions"
-import { Client } from "@/services/clients"
+import { User } from "@/services/users"
 import '@tanstack/react-table' // Re-import for type augmentation
 
 // Extend table and column meta types
@@ -16,14 +16,14 @@ declare module '@tanstack/react-table' {
 
   // Keep the TableMeta augmentation
   interface TableMeta<TData extends RowData> {
-    viewClient?: (client: Client) => void
-    editClient?: (client: Client) => void
-    deleteClient?: (client: Client) => void
+    viewUser?: (user: User) => void
+    editUser?: (user: User) => void
+    deleteUser?: (user: User) => void
   }
 }
 
-// Define the columns based on the Updated Client type
-export const columns: ColumnDef<Client>[] = [
+// Define the columns based on the User type
+export const columns: ColumnDef<User>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -48,7 +48,7 @@ export const columns: ColumnDef<Client>[] = [
     enableSorting: false,
     enableHiding: false,
     meta: {
-      mobileHidden: true, // Hide on mobile
+      mobileHidden: false, // Hide on mobile
     },
   },
   {
@@ -85,22 +85,32 @@ export const columns: ColumnDef<Client>[] = [
     // No meta needed, visible by default
   },
   {
-    accessorKey: "visits",
+    accessorKey: "level",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Visits" />
+      <DataTableColumnHeader column={column} title="Level" />
     ),
-    cell: ({ row }) => <div className="text-center">{row.getValue("visits")}</div>,
+    cell: ({ row }) => <div className="text-center">{row.getValue("level") || 'N/A'}</div>,
     meta: {
       mobileHidden: false, // Hide on mobile
     },
   },
   {
-    accessorKey: "avgVisit",
+    accessorKey: "services",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Avg Visit" />
+      <DataTableColumnHeader column={column} title="Services" />
+    ),
+    cell: ({ row }) => <div className="text-center">{row.getValue("services") || 'N/A'}</div>,
+    meta: {
+      mobileHidden: false, // Hide on mobile
+    },
+  },
+  {
+    accessorKey: "rating",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Rating" />
     ),
     cell: ({ row }) => {
-      const value = row.getValue("avgVisit");
+      const value = row.getValue("rating");
       return <div className="text-center">{typeof value === 'number' ? value.toFixed(1) : 'N/A'}</div>;
     },
     meta: {
@@ -108,13 +118,13 @@ export const columns: ColumnDef<Client>[] = [
     },
   },
   {
-    accessorKey: "avgVisitValue",
+    accessorKey: "role",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Avg Value" />
+      <DataTableColumnHeader column={column} title="Role" />
     ),
     cell: ({ row }) => {
-        const value = row.getValue("avgVisitValue");
-        return <div className="text-center">{typeof value === 'number' ? `$${value.toFixed(2)}` : 'N/A'}</div>;
+      const roles = row.getValue("role") as string[] | undefined;
+      return <div>{roles ? roles.join(', ') : 'N/A'}</div>;
     },
     meta: {
       mobileHidden: false, // Hide on mobile
@@ -126,9 +136,9 @@ export const columns: ColumnDef<Client>[] = [
        <DataTableRowActions
          row={row}
          // Access handlers from table meta
-         onView={() => table.options.meta?.viewClient?.(row.original)}
-         onEdit={() => table.options.meta?.editClient?.(row.original)}
-         onDelete={() => table.options.meta?.deleteClient?.(row.original)}
+         onView={() => table.options.meta?.viewUser?.(row.original)}
+         onEdit={() => table.options.meta?.editUser?.(row.original)}
+         onDelete={() => table.options.meta?.deleteUser?.(row.original)}
        />
      ),
      meta: {
