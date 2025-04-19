@@ -7,7 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { AddClientForm } from './add-user-form';
+import { AddUserForm } from './add-user-form';
 // Import Client directly from the service
 import { Client, NewClientData } from '@/services/clients'; // Removed ServiceClient alias
 import { Badge } from "@/components/ui/badge";
@@ -15,65 +15,71 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ClientSheetHeaderContent, type SheetMode } from './UserSheetHeaderContent'; // Import the new component and SheetMode type
+// Import User and NewUserData types
+import { User, NewUserData } from '@/services/users';
 
 // Interface for the main component props
-interface ClientSheetContentProps {
+interface UserSheetContentProps {
     sheetMode: SheetMode;
-    selectedClient: Client | null; // Use imported Client type
-    onSuccess: (formData: NewClientData | Client) => void; // Use imported Client type
-    onChangeMode: (mode: SheetMode, client?: Client | null) => void; // Use imported Client type
+    selectedUser: User | null;
+    onSuccess: (formData: NewUserData | User) => void;
+    onChangeMode: (mode: SheetMode, user?: User | null) => void;
     onCloseSheet: () => void;
-    onRequestDelete?: () => void; // Added prop for delete request from sheet
-    isLoading?: boolean; // Optional since we use page-level loading overlay now
+    onRequestDelete?: () => void;
+    isLoading?: boolean;
 }
 
-// Utility function to map Client data to form data structure
-// Input should be the imported Client type
-const mapClientToFormData = (client: Client | null): Partial<NewClientData> & { id?: string } | undefined => {
-    if (!client) return undefined;
+// Utility function to map User data to form data structure
+const mapUserToFormData = (user: User | null): Partial<NewUserData> & { id?: string } | undefined => {
+    if (!user) return undefined;
 
-    console.log("Mapping client data to form:", client);
+    console.log("Mapping user data to form:", user);
 
     try {
         return {
-            id: client.id || '',
-            firstName: client.firstName,
-            lastName: client.lastName,
-            phone: client.phone,
-            email: client.email,
-            // Include all optional fields
-            gender: client.gender,
-            pronouns: client.pronouns,
-            referredBy: client.referredBy,
-            clientType: client.clientType,
-            // Handle date conversion
-            birthday: client.birthday ? new Date(client.birthday) : undefined,
-            // Map address information if available
-            address: client.address ? {
-                street: client.address.street,
-                city: client.address.city,
-                state: client.address.state,
-                postalCode: client.address.postalCode,
-                country: client.address.country,
-                location: client.address.location
+            id: user.id || '',
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phone: user.phone,
+            email: user.email,
+            profileImage: user.profileImage, // Added profileImage field
+            gender: user.gender,
+            pronouns: user.pronouns,
+            // Removed referredBy and clientType as they're not in the schema
+            birthday: user.birthday ? new Date(user.birthday) : undefined,
+            address: user.address ? {
+                street: user.address.street,
+                city: user.address.city,
+                state: user.address.state,
+                postalCode: user.address.postalCode,
+                country: user.address.country,
+                location: {
+                    type: user.address.location?.type || "Point",
+                    coordinates: user.address.location?.coordinates || [0, 0]
+                }
             } : undefined,
+            role: Array.isArray(user.role) ? user.role : ["PROFESSIONAL"],
         };
     } catch (error) {
-        console.error("Error mapping client data:", error);
+        console.error("Error mapping user data:", error);
         // Return basic data if mapping fails
         return {
-            firstName: client.firstName || "",
-            lastName: client.lastName || "",
-            phone: client.phone || "",
-            email: client.email || "",
+            firstName: user.firstName || "",
+            lastName: user.lastName || "",
+            phone: user.phone || "",
+            email: user.email || "",
+            role: ["PROFESSIONAL"],
+            // Include required fields even in error case
+            gender: user.gender || "Male", // Default to "Male" as shown in the schema
+            profileImage: user.profileImage || "", // Include profileImage in error case
         };
     }
 };
 
 // The Sheet Content Component
-export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
+export const UserSheetContent: React.FC<UserSheetContentProps> = ({
     sheetMode,
-    selectedClient,
+    selectedUser,
     onSuccess,
     onChangeMode,
     onCloseSheet,
@@ -86,9 +92,9 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
     // Static Data Helper - Updated to match ClientSheetHeaderContent props
     const StaticClientViewData = useMemo(() => ({
         // Use properties available in selectedClient or static examples
-        showRate: selectedClient?.showRate ?? 0,
+        showRate: selectedUser?.showRate ?? 0,
         // avgVisit: selectedClient?.avgVisit ?? 0, // avgVisitWeeks is used in header, keep static example
-        avgVisitValue: selectedClient?.avgVisitValue ?? 0,
+        avgVisitValue: selectedUser?.avgVisitValue ?? 0,
         // Static/Example Data expected by header
         ratingCount: 84, // Example
         avgVisitWeeks: 4.5, // Example
@@ -96,23 +102,23 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
         tagsHair: ["Hair color", "Haircuts", "Haircuts"], // Example data
         tagsSalon: ["Salon 1", "Salon 2"], // Example data
         addressDisplay: "Address info TBD", // Placeholder - Address is not directly on Client now
-    }), [selectedClient]);
+    }), [selectedUser]);
 
     // Determines the title based on the current mode
     const getSheetTitle = () => {
         switch (sheetMode) {
             case 'add': return 'Add New Client';
             // Use correct property names
-            case 'view': return selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : 'Client Details';
-            case 'edit': return selectedClient ? `Editing ${selectedClient.firstName} ${selectedClient.lastName}` : 'Edit Client';
+            case 'view': return selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : 'Client Details';
+            case 'edit': return selectedUser ? `Editing ${selectedUser.firstName} ${selectedUser.lastName}` : 'Edit Client';
             default: return 'Client Information';
         }
     };
 
     // Handler for canceling - Switches back to view if editing, otherwise closes
     const handleCancelEdit = () => {
-      if (sheetMode === 'edit' && selectedClient) {
-        onChangeMode('view', selectedClient); // Use onChangeMode to switch back to view (type is now correct)
+      if (sheetMode === 'edit' && selectedUser) {
+        onChangeMode('view', selectedUser); // Use onChangeMode to switch back to view (type is now correct)
       } else {
         onCloseSheet(); // Close sheet if cancelling 'add' or if something unexpected happens
       }
@@ -127,7 +133,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
             case 'INFO':
                 return (
                     <>
-                        {sheetMode === 'view' && selectedClient && (
+                        {sheetMode === 'view' && selectedUser && (
                             <div className="space-y-3 mb-3">
                                  {/* Use grid for mobile too: Tags left, Last Visited right */}
                                  <div className="grid grid-cols-2 gap-4"> {/* Increased gap slightly */}
@@ -148,15 +154,15 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                                <Separator className="my-2"/>
                             </div>
                         )}
-                        <AddClientForm
-                            key={selectedClient?.id || 'mobile-view-edit-form'}
-                            initialData={mapClientToFormData(selectedClient)}
+                        <AddUserForm
+                            key={selectedUser?.id || 'mobile-view-edit-form'}
+                            initialData={mapUserToFormData(selectedUser)}
                             isInitiallyEditing={sheetMode === 'edit'}
                             onSuccess={onSuccess}
                             onCancelEdit={handleCancelEdit}
                             onRequestDeleteFromForm={onRequestDelete}
                             className="mt-0"
-                            submitButtonLabel={sheetMode === 'edit' ? "Update Client" : "Add Client"}
+                            submitButtonLabel={sheetMode === 'edit' ? "Update User" : "Add User"}
                         />
                     </>
                 );
@@ -176,14 +182,14 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
             "w-full p-0 flex flex-col overflow-hidden",
             (sheetMode === 'view' || sheetMode === 'edit') ? "sm:max-w-4xl" : "sm:max-w-md"
         )}>
-            {(sheetMode === 'view' || sheetMode === 'edit') && selectedClient ? (
+            {(sheetMode === 'view' || sheetMode === 'edit') && selectedUser ? (
                 <>
                 {/* Mobile View with Tabs */}
                 <div className="flex flex-row w-full h-full sm:flex md:hidden">
                     <div className="flex flex-col w-full h-full">
                         {/* Use the reusable header component for mobile */}
                         <ClientSheetHeaderContent
-                            selectedClient={selectedClient}
+                            selectedClient={selectedUser}
                             staticData={StaticClientViewData}
                             onChangeMode={onChangeMode}
                             onSetMobileTab={setSelectedMobileTab} // Pass mobile tab setter
@@ -209,7 +215,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                     <div className="flex flex-col w-1/2 border-r overflow-hidden">
                         {/* Use the reusable header component for desktop */}
                         <ClientSheetHeaderContent
-                            selectedClient={selectedClient}
+                            selectedClient={selectedUser}
                             staticData={StaticClientViewData}
                             onChangeMode={onChangeMode}
                             // Do not pass onSetMobileTab for desktop
@@ -234,15 +240,15 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                                     </div>
                                 )}
 
-                                <AddClientForm
-                                    key={selectedClient.id || 'view-edit-form'}
-                                    initialData={mapClientToFormData(selectedClient)}
+                                <AddUserForm
+                                    key={selectedUser.id || 'view-edit-form'}
+                                    initialData={mapUserToFormData(selectedUser)}
                                     isInitiallyEditing={sheetMode === 'edit'}
                                     onSuccess={onSuccess}
                                     onCancelEdit={handleCancelEdit}
                                     onRequestDeleteFromForm={onRequestDelete}
                                     className="mt-0"
-                                    submitButtonLabel={sheetMode === 'edit' ? "Update Client" : "Add Client"}
+                                    submitButtonLabel={sheetMode === 'edit' ? "Update User" : "Add User"}
                                 />
                             </>
                         </div>
@@ -271,7 +277,7 @@ export const ClientSheetContent: React.FC<ClientSheetContentProps> = ({
                         <SheetDescription>Fill in the details below to add a new client.</SheetDescription>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto p-3">
-                        <AddClientForm
+                        <AddUserForm
                             key={'add-form'}
                             initialData={undefined}
                             isInitiallyEditing={true}

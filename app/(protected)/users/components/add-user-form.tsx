@@ -10,25 +10,30 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription, // Added
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { addClient, NewClientData, Client, updateClient } from '@/services/clients';
+import { addUser, NewUserData, User, updateUser } from '@/services/users';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // For conditional classnames
 
-// --- Updated Zod Schema ---
+// --- Updated Zod Schema --- Removing nested defaults
+const locationSchema = z.object({
+  type: z.string(), // Removed default
+  coordinates: z.array(z.number()) // Removed default
+});
+
 const addressSchema = z.object({
-    street: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
-    postalCode: z.string().optional(),
-    country: z.string().optional(),
-    // Location is omitted for simplicity in the form for now
+  street: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  postalCode: z.string().optional(),
+  country: z.string().optional(),
+  location: locationSchema.optional()
 }).optional();
 
 const formSchema = z.object({
@@ -36,19 +41,20 @@ const formSchema = z.object({
   lastName: z.string().min(1, { message: "Last name is required." }),
   phone: z.string().min(1, { message: "Phone number is required." }),
   email: z.string().email({ message: "Invalid email address." }).min(1, { message: "Email is required." }),
+  profileImage: z.string().optional(),
   gender: z.string().optional(),
   pronouns: z.string().optional(),
-  referredBy: z.string().optional(),
-  clientType: z.string().optional(), // Changed from required to optional
-  birthday: z.date().optional().nullable(), // Allow null for empty input
+  birthday: z.date().optional().nullable(),
   address: addressSchema,
+  role: z.array(z.string()).min(1, { message: "At least one role is required." }).optional()
 });
-// ---
+
+// Define the form schema type
+type FormData = z.infer<typeof formSchema>;
 
 // Helper function to format Date to YYYY-MM-DD
 const formatDateForInput = (date: Date | undefined | null): string => {
   if (!date) return "";
-  // Ensure it's a valid date object before formatting
   if (Object.prototype.toString.call(date) === '[object Date]' && !isNaN(date.getTime())) {
     return date.toISOString().split('T')[0];
   }
@@ -58,68 +64,60 @@ const formatDateForInput = (date: Date | undefined | null): string => {
 // Helper function to parse YYYY-MM-DD to Date or null
 const parseDateFromInput = (value: string): Date | null => {
   if (!value) return null;
-  // Attempt to parse, considering potential timezone issues
-  // Adding time component avoids potential off-by-one day errors
   const date = new Date(value + 'T00:00:00');
   if (!isNaN(date.getTime())) {
       return date;
   }
-  return null; // Return null if parsing fails
+  return null;
 };
 
-interface AddClientFormProps {
-    initialData?: Partial<NewClientData> & { id?: string; birthday?: string | Date | null }; // Adjust birthday type
-    isInitiallyEditing?: boolean; // Control initial mode - THIS WILL NOW BE THE ONLY SOURCE OF TRUTH FOR EDIT STATE
-    onSuccess?: (data: NewClientData | Client) => void; // Updated type
-    onCancelEdit?: () => void; // Optional callback for cancelling edit
-    onRequestDeleteFromForm?: () => void; // New prop for delete action
+interface AddUserFormProps {
+    initialData?: Partial<NewUserData> & { id?: string };
+    isInitiallyEditing?: boolean;
+    onSuccess?: (data: NewUserData | User) => void;
+    onCancelEdit?: () => void;
+    onRequestDeleteFromForm?: () => void;
     className?: string;
-    submitButtonLabel?: string; // Added prop for customizing submit button text
+    submitButtonLabel?: string;
 }
 
-export function AddClientForm({
+export function AddUserForm({
     initialData,
-    isInitiallyEditing = !initialData, // Default to edit if no initial data, view otherwise
+    isInitiallyEditing = !initialData,
     onSuccess,
     onCancelEdit,
-    onRequestDeleteFromForm, // Destructure new prop
+    onRequestDeleteFromForm,
     className,
-    submitButtonLabel = initialData ? "Save Changes" : "Add Client" // Default label based on mode
-}: AddClientFormProps) {
+    submitButtonLabel = initialData ? "Save Changes" : "Add User"
+}: AddUserFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(isInitiallyEditing);
 
-  // Function to safely create a Date from initial data
-  const getInitialDate = (birthday: string | Date | undefined | null): Date | undefined => {
-    if (!birthday) return undefined;
-    const date = new Date(birthday);
-    return isNaN(date.getTime()) ? undefined : date;
-  }
-
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData ? { // Populate with initialData or defaults
-        firstName: initialData.firstName ?? "",
-        lastName: initialData.lastName ?? "",
-        phone: initialData.phone ?? "",
-        email: initialData.email ?? "",
-        gender: initialData.gender ?? "",
-        pronouns: initialData.pronouns ?? "",
-        referredBy: initialData.referredBy ?? "",
-        clientType: initialData.clientType ?? "",
-        birthday: getInitialDate(initialData.birthday), // Use helper
-        address: {
-            street: initialData.address?.street ?? "",
-            city: initialData.address?.city ?? "",
-            state: initialData.address?.state ?? "",
-            postalCode: initialData.address?.postalCode ?? "",
-            country: initialData.address?.country ?? "",
-        },
-    } : {
-        // Default empty values if no initialData
-        firstName: "", lastName: "", phone: "", email: "", gender: "",
-        pronouns: "", referredBy: "", clientType: "", birthday: undefined,
-        address: { street: "", city: "", state: "", postalCode: "", country: "" },
-    },
+    // Ensure full default structure for nested objects
+    defaultValues: {
+      firstName: initialData?.firstName ?? "",
+      lastName: initialData?.lastName ?? "",
+      phone: initialData?.phone ?? "",
+      email: initialData?.email ?? "",
+      profileImage: initialData?.profileImage ?? "",
+      gender: initialData?.gender ?? "Male",
+      pronouns: initialData?.pronouns ?? "",
+      birthday: initialData?.birthday ? new Date(initialData.birthday) : null,
+      address: {
+        street: initialData?.address?.street ?? "",
+        city: initialData?.address?.city ?? "",
+        state: initialData?.address?.state ?? "",
+        postalCode: initialData?.address?.postalCode ?? "",
+        country: initialData?.address?.country ?? "",
+        location: {
+          type: initialData?.address?.location?.type ?? "Point", // Provide default
+          coordinates: initialData?.address?.location?.coordinates ?? [0, 0] // Provide default
+        }
+      },
+      role: initialData?.role ?? ["PROFESSIONAL"]
+    }
   });
 
   // Helper function for copy to clipboard
@@ -145,77 +143,105 @@ export function AddClientForm({
             lastName: initialData.lastName ?? "",
             phone: initialData.phone ?? "",
             email: initialData.email ?? "",
-            gender: initialData.gender ?? "",
+            profileImage: initialData.profileImage ?? "",
+            gender: initialData.gender ?? "Male",
             pronouns: initialData.pronouns ?? "",
-            referredBy: initialData.referredBy ?? "",
-            clientType: initialData.clientType ?? "",
-            birthday: getInitialDate(initialData.birthday), // Use helper for reset
+            birthday: initialData.birthday ? new Date(initialData.birthday) : null,
             address: {
                 street: initialData.address?.street ?? "",
                 city: initialData.address?.city ?? "",
                 state: initialData.address?.state ?? "",
                 postalCode: initialData.address?.postalCode ?? "",
                 country: initialData.address?.country ?? "",
+                location: {
+                    type: initialData.address?.location?.type ?? "Point", // Reset with default
+                    coordinates: initialData.address?.location?.coordinates ?? [0, 0] // Reset with default
+                }
             },
+            role: initialData.role ?? ["PROFESSIONAL"],
           });
       }
-  }, [initialData, form.reset]); // form.reset is stable
+  }, [initialData, form.reset]);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const onSubmit = async (values: FormData) => {
     setIsSubmitting(true);
-
     try {
-        // Create base payload, ensuring birthday is formatted correctly if needed by API
-        // (Assuming API handles Date object or ISO string)
-        const dataPayload: NewClientData = {
-            ...values,
-            // API service functions already handle Date -> ISO string conversion
-            // No explicit conversion needed here if values.birthday is a Date object
-            birthday: values.birthday ?? undefined, // Send undefined if null
-            address: (values.address && Object.values(values.address).some(v => v))
-                ? values.address
-                : undefined,
-        };
-
-        // Determine if we're updating an existing client
-        const isUpdating = initialData && initialData.id && typeof initialData.id === 'string';
-
-        if (isUpdating && initialData?.id) {
-            // UPDATE LOGIC
-            const updatedClient = await updateClient(initialData.id, dataPayload);
-            toast.success("Client Updated", { description: `${updatedClient.firstName} ${updatedClient.lastName} details updated.` });
-            onSuccess?.(updatedClient);
-        } else {
-            // ADD LOGIC
-            let finalPayload: NewClientData;
-            if ('id' in dataPayload) {
-                const { id, ...cleanDataPayload } = dataPayload as NewClientData & { id: string };
-                finalPayload = cleanDataPayload;
-            } else {
-                finalPayload = dataPayload;
+      // Prepare base payload
+      const dataPayload: NewUserData = {
+        ...values,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        phone: values.phone,
+        email: values.email,
+        gender: values.gender ?? "Male",
+        role: values.role ?? ["PROFESSIONAL"],
+        profileImage: values.profileImage,
+        pronouns: values.pronouns,
+        birthday: values.birthday ?? undefined,
+        address: values.address
+          ? {
+              ...values.address,
+              location: values.address.location
+                ? {
+                    type: values.address.location.type,
+                    coordinates: values.address.location.coordinates
+                  }
+                : { type: "Point", coordinates: [0, 0] },
             }
-            const addedClient = await addClient(finalPayload);
-            toast.success("Client Added", { description: `${addedClient.firstName} ${addedClient.lastName} has been successfully added.` });
-            form.reset(); // Reset after successful add
-            onSuccess?.(addedClient);
-        }
+          : undefined,
+      };
+
+      // Refine address payload: if all address fields are empty, send undefined
+      if (dataPayload.address &&
+          !dataPayload.address.street &&
+          !dataPayload.address.city &&
+          !dataPayload.address.state &&
+          !dataPayload.address.postalCode &&
+          !dataPayload.address.country) {
+          dataPayload.address = undefined;
+      }
+
+      // Determine if we're updating an existing user
+      const isUpdating = initialData && initialData.id && typeof initialData.id === 'string';
+      let result: User;
+
+      if (isUpdating && initialData.id) {
+          // --- UPDATE LOGIC ---
+          result = await updateUser(initialData.id, dataPayload);
+          toast.success("User Updated", { description: `${result.firstName} ${result.lastName} details updated.` });
+      } else {
+          // --- ADD LOGIC ---
+          // Clean payload if id accidentally exists (shouldn't with current setup, but good practice)
+          let finalPayload: NewUserData;
+          if ('id' in dataPayload) {
+              const { id, ...cleanDataPayload } = dataPayload as NewUserData & { id: string };
+              finalPayload = cleanDataPayload;
+          } else {
+              finalPayload = dataPayload;
+          }
+          result = await addUser(finalPayload);
+          toast.success("User Added", { description: `${result.firstName} ${result.lastName} has been successfully added.` });
+          form.reset(); // Reset form only on successful add
+      }
+
+      // Call onSuccess callback with the result from the API
+      if (onSuccess) {
+        onSuccess(result);
+      }
+
+      setIsEditing(false); // Go back to non-editing mode after success
+
     } catch (error) {
       console.error("Failed operation:", error);
-      toast.error(initialData?.id ? "Error Updating Client" : "Error Adding Client", {
+      toast.error(initialData?.id ? "Error Updating User" : "Error Adding User", {
         description: error instanceof Error ? error.message : "An unexpected error occurred.",
       });
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
-  const handleCancelEdit = () => {
-    form.reset(); // Reset to initialData values
-    onCancelEdit?.(); // Notify parent to handle mode change or close
-  }
-
-  // Determine if fields should be disabled (view mode)
-  const isDisabled = !isInitiallyEditing && !!initialData;
+  const isDisabled = !isEditing;
 
   return (
     <Form {...form}>
@@ -333,37 +359,6 @@ export function AddClientForm({
           />
            <FormField
             control={form.control}
-            name="referredBy"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Referred By</FormLabel>
-                <FormControl>
-                  <Input {...field} disabled={isDisabled} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-           <FormField
-            control={form.control}
-            name="clientType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Client Type</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    disabled={isDisabled}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* --- Updated Birthday Field --- */}
-          <FormField
-            control={form.control}
             name="birthday"
             render={({ field }) => {
               // Adapt the field props for <input type="date">
@@ -389,110 +384,124 @@ export function AddClientForm({
               );
             }}
           />
+
+          {/* Address Fields */}
+          <h3 className="text-lg font-medium pt-4 border-t">Address</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                  control={form.control}
+                  name="address.street"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Street</FormLabel>
+                      <FormControl>
+                          <Input {...field} disabled={isDisabled} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+               <FormField
+                  control={form.control}
+                  name="address.city"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                          <Input {...field} disabled={isDisabled} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+               <FormField
+                  control={form.control}
+                  name="address.state"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>State</FormLabel>
+                      <FormControl>
+                          <Input {...field} disabled={isDisabled} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+               <FormField
+                  control={form.control}
+                  name="address.postalCode"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Postal Code</FormLabel>
+                      <FormControl>
+                          <Input {...field} disabled={isDisabled} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+               <FormField
+                  control={form.control}
+                  name="address.country"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Country</FormLabel>
+                      <FormControl>
+                          <Input {...field} disabled={isDisabled} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+          </div>
+
+          {/* Submit, Cancel, and Delete Buttons at the end */}
+          {/* Only show if in edit mode */}
+          {isEditing && (
+              <div className="flex justify-end items-center gap-2 pt-4">
+                  {/* Delete Icon Button - Only show when editing existing data */}
+                  {initialData && onRequestDeleteFromForm && (
+                      <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          onClick={onRequestDeleteFromForm}
+                          disabled={isSubmitting}
+                          aria-label="Delete User"
+                      >
+                          <Trash2 className="h-4 w-4" />
+                      </Button>
+                  )}
+                  {/* Spacer to push cancel/save to the right if delete is present */}
+                  {initialData && onRequestDeleteFromForm && <div className="flex-grow"></div>}
+
+                  {/* Cancel Button */}
+                  <Button type="button" variant="ghost" onClick={onCancelEdit} disabled={isSubmitting}>
+                      Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      {submitButtonLabel}
+                  </Button>
+              </div>
+          )}
         </div>
 
-        {/* Address Fields */}
-        <h3 className="text-lg font-medium pt-4 border-t">Address</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField
-                control={form.control}
-                name="address.street"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Street</FormLabel>
-                    <FormControl>
-                        <Input {...field} disabled={isDisabled} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="address.city"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>City</FormLabel>
-                    <FormControl>
-                        <Input {...field} disabled={isDisabled} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="address.state"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>State</FormLabel>
-                    <FormControl>
-                        <Input {...field} disabled={isDisabled} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="address.postalCode"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Postal Code</FormLabel>
-                    <FormControl>
-                        <Input {...field} disabled={isDisabled} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="address.country"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Country</FormLabel>
-                    <FormControl>
-                        <Input {...field} disabled={isDisabled} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-        </div>
-
-        {/* Submit, Cancel, and Delete Buttons at the end */}
-        {/* Only show if in edit mode */}
-        {isInitiallyEditing && (
-            <div className="flex justify-end items-center gap-2 pt-4">
-                {/* Delete Icon Button - Only show when editing existing data */}
-                {initialData && onRequestDeleteFromForm && (
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        onClick={onRequestDeleteFromForm}
-                        disabled={isSubmitting}
-                        aria-label="Delete Client"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                )}
-                {/* Spacer to push cancel/save to the right if delete is present */}
-                {initialData && onRequestDeleteFromForm && <div className="flex-grow"></div>}
-
-                {/* Cancel Button */}
-                <Button type="button" variant="ghost" onClick={onCancelEdit} disabled={isSubmitting}>
-                    Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : null}
-                    {submitButtonLabel}
-                </Button>
-            </div>
-        )}
+        {/* Role field - hidden from form but included in data */}
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem className="hidden">
+              <FormControl>
+                <Input {...field} type="hidden" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </form>
     </Form>
   );
