@@ -264,7 +264,7 @@ export default function DashboardUsersPage() { // Renamed component
           )}
         </div>
         <Button onClick={() => handleOpenSheet('add')} className="w-full sm:w-auto">
-          <PlusCircle className="mr-2 h-4 w-4" /> Add User // Updated button text
+          <PlusCircle className="mr-2 h-4 w-4" /> Add User
         </Button>
       </div>
 

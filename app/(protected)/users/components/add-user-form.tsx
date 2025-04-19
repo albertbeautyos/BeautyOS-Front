@@ -91,7 +91,6 @@ export function AddUserForm({
     submitButtonLabel = initialData ? "Save Changes" : "Add User"
 }: AddUserFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isEditing, setIsEditing] = useState(isInitiallyEditing);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -229,8 +228,6 @@ export function AddUserForm({
         onSuccess(result);
       }
 
-      setIsEditing(false); // Go back to non-editing mode after success
-
     } catch (error) {
       console.error("Failed operation:", error);
       toast.error(initialData?.id ? "Error Updating User" : "Error Adding User", {
@@ -241,13 +238,12 @@ export function AddUserForm({
     }
   };
 
-  const isDisabled = !isEditing;
+  const isDisabled = !isInitiallyEditing && !!initialData;
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className={`space-y-4 ${className}`}>
-
-        {/* Form Fields Grid */}
+        {/* Main Form Fields Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* --- Fields --- */}
           {/* Use isDisabled prop on Input/Button/Calendar etc. */}
@@ -384,112 +380,107 @@ export function AddUserForm({
               );
             }}
           />
-
-          {/* Address Fields */}
-          <h3 className="text-lg font-medium pt-4 border-t">Address</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                  control={form.control}
-                  name="address.street"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Street</FormLabel>
-                      <FormControl>
-                          <Input {...field} disabled={isDisabled} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-              />
-               <FormField
-                  control={form.control}
-                  name="address.city"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl>
-                          <Input {...field} disabled={isDisabled} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-              />
-               <FormField
-                  control={form.control}
-                  name="address.state"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>State</FormLabel>
-                      <FormControl>
-                          <Input {...field} disabled={isDisabled} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-              />
-               <FormField
-                  control={form.control}
-                  name="address.postalCode"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Postal Code</FormLabel>
-                      <FormControl>
-                          <Input {...field} disabled={isDisabled} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-              />
-               <FormField
-                  control={form.control}
-                  name="address.country"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Country</FormLabel>
-                      <FormControl>
-                          <Input {...field} disabled={isDisabled} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-              />
-          </div>
-
-          {/* Submit, Cancel, and Delete Buttons at the end */}
-          {/* Only show if in edit mode */}
-          {isEditing && (
-              <div className="flex justify-end items-center gap-2 pt-4">
-                  {/* Delete Icon Button - Only show when editing existing data */}
-                  {initialData && onRequestDeleteFromForm && (
-                      <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          onClick={onRequestDeleteFromForm}
-                          disabled={isSubmitting}
-                          aria-label="Delete User"
-                      >
-                          <Trash2 className="h-4 w-4" />
-                      </Button>
-                  )}
-                  {/* Spacer to push cancel/save to the right if delete is present */}
-                  {initialData && onRequestDeleteFromForm && <div className="flex-grow"></div>}
-
-                  {/* Cancel Button */}
-                  <Button type="button" variant="ghost" onClick={onCancelEdit} disabled={isSubmitting}>
-                      Cancel
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : null}
-                      {submitButtonLabel}
-                  </Button>
-              </div>
-          )}
         </div>
 
-        {/* Role field - hidden from form but included in data */}
+        {/* Address Section (Outside main grid) */}
+        <h3 className="text-lg font-medium pt-4 border-t">Address</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="address.street"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Street</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={isDisabled} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="address.city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={isDisabled} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="address.state"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>State</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={isDisabled} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="address.postalCode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Postal Code</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={isDisabled} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="address.country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={isDisabled} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Submit/Cancel/Delete Buttons */}
+        {isInitiallyEditing && (
+            <div className="flex justify-end items-center gap-2 pt-4">
+                {initialData && onRequestDeleteFromForm && (
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={onRequestDeleteFromForm}
+                        disabled={isSubmitting}
+                        aria-label="Delete User"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                )}
+                {initialData && onRequestDeleteFromForm && <div className="flex-grow"></div>}
+                <Button type="button" variant="ghost" onClick={onCancelEdit} disabled={isSubmitting}>
+                    Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    {submitButtonLabel}
+                </Button>
+            </div>
+        )}
+
+        {/* Hidden Role field remains the same */}
         <FormField
           control={form.control}
           name="role"
