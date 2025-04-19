@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { sendLoginCode, verifyOtpAndLogin, logout as logoutService, LoginResponse } from '@/services/auth'; // Import LoginResponse type
-import { getCurrentUser, UserData as FetchedUserData } from '@/services/user'; // Import user service and type
+import { getCurrentUser, UserData as FetchedUserData } from '@/services/getProfile'; // Import user service and type
 import { LocalStorageManager } from "@/helpers/localStorageManager";
 import { SessionStorageManager } from "@/helpers/sessionStorageManager";
 import { RootState } from '../store'; // Import RootState type from store
