@@ -32,7 +32,6 @@ interface ClientSheetContentProps {
 const mapClientToFormData = (client: Client | null): Partial<NewClientData> & { id?: string } | undefined => {
     if (!client) return undefined;
 
-    console.log("Mapping client data to form:", client);
 
     try {
         return {

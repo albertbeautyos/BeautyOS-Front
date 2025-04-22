@@ -172,6 +172,7 @@ export function AddClientForm({
             // API service functions already handle Date -> ISO string conversion
             // No explicit conversion needed here if values.birthday is a Date object
             birthday: values.birthday ?? undefined, // Send undefined if null
+            gender:values.gender?values.gender :'opt-out',
             address: (values.address && Object.values(values.address).some(v => v))
                 ? values.address
                 : undefined,

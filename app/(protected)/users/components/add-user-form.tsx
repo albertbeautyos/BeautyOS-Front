@@ -27,6 +27,7 @@ const locationSchema = z.object({
   coordinates: z.array(z.number()) // Removed default
 });
 
+// Basic address schema that can be empty
 const addressSchema = z.object({
   street: z.string().optional(),
   city: z.string().optional(),
@@ -36,18 +37,53 @@ const addressSchema = z.object({
   location: locationSchema.optional()
 }).optional();
 
+// Create the base form schema
 const formSchema = z.object({
   firstName: z.string().min(1, { message: "First name is required." }),
   lastName: z.string().min(1, { message: "Last name is required." }),
   phone: z.string().min(1, { message: "Phone number is required." }),
-  email: z.string().email({ message: "Invalid email address." }).min(1, { message: "Email is required." }),
+  email: z.union([
+    z.string().email({ message: "Invalid email address." }),
+    z.string().max(0) // Empty string is valid
+  ]).optional(),
   profileImage: z.string().optional(),
   gender: z.string().optional(),
   pronouns: z.string().optional(),
   birthday: z.date().optional().nullable(),
   address: addressSchema,
   role: z.array(z.string()).min(1, { message: "At least one role is required." }).optional()
-});
+})
+// Add refine to handle the address validation
+.refine(
+  (data) => {
+    // If no address data provided, that's valid
+    if (!data.address) return true;
+
+    // Check if any address field has a value
+    const hasAnyAddressValue =
+      !!data.address.street ||
+      !!data.address.city ||
+      !!data.address.state ||
+      !!data.address.postalCode ||
+      !!data.address.country;
+
+    // If no fields have values, that's valid
+    if (!hasAnyAddressValue) return true;
+
+    // If any field has a value, all required fields must have values
+    return (
+      !!data.address.street &&
+      !!data.address.city &&
+      !!data.address.state &&
+      !!data.address.postalCode &&
+      !!data.address.country
+    );
+  },
+  {
+    message: "If any address field is filled, all address fields (street, city, state, postal code, country) are required",
+    path: ["address"], // Point to the address field
+  }
+);
 
 // Define the form schema type
 type FormData = z.infer<typeof formSchema>;
@@ -120,7 +156,10 @@ export function AddUserForm({
   });
 
   // Helper function for copy to clipboard
-  const handleCopyToClipboard = async (text: string, fieldName: string) => {
+  const handleCopyToClipboard = async (text: string | undefined, fieldName: string) => {
+
+    if(!text) return null
+
     if (!navigator.clipboard) {
       toast.error("Clipboard API not available");
       return;
@@ -141,7 +180,7 @@ export function AddUserForm({
             firstName: initialData.firstName ?? "",
             lastName: initialData.lastName ?? "",
             phone: initialData.phone ?? "",
-            email: initialData.email ?? "",
+            email: initialData.email ?? undefined,
             profileImage: initialData.profileImage ?? "",
             gender: initialData.gender ?? "Male",
             pronouns: initialData.pronouns ?? "",
@@ -171,7 +210,8 @@ export function AddUserForm({
         firstName: values.firstName,
         lastName: values.lastName,
         phone: values.phone,
-        email: values.email,
+        // Only include email if it's not an empty string
+        email: values.email && values.email.trim() !== '' ? values.email : undefined,
         gender: values.gender ?? "Male",
         role: values.role ?? ["PROFESSIONAL"],
         profileImage: values.profileImage,
@@ -190,37 +230,27 @@ export function AddUserForm({
           : undefined,
       };
 
-      // Refine address payload: if all address fields are empty, send undefined
-      if (dataPayload.address &&
-          !dataPayload.address.street &&
-          !dataPayload.address.city &&
-          !dataPayload.address.state &&
-          !dataPayload.address.postalCode &&
-          !dataPayload.address.country) {
-          dataPayload.address = undefined;
-      }
-
       // Determine if we're updating an existing user
       const isUpdating = initialData && initialData.id && typeof initialData.id === 'string';
       let result: User;
 
       if (isUpdating && initialData.id) {
-          // --- UPDATE LOGIC ---
-          result = await updateUser(initialData.id, dataPayload);
-          toast.success("User Updated", { description: `${result.firstName} ${result.lastName} details updated.` });
+        // --- UPDATE LOGIC ---
+        result = await updateUser(initialData.id, dataPayload);
+        toast.success("User Updated", { description: `${result.firstName} ${result.lastName} details updated.` });
       } else {
-          // --- ADD LOGIC ---
-          // Clean payload if id accidentally exists (shouldn't with current setup, but good practice)
-          let finalPayload: NewUserData;
-          if ('id' in dataPayload) {
-              const { id, ...cleanDataPayload } = dataPayload as NewUserData & { id: string };
-              finalPayload = cleanDataPayload;
-          } else {
-              finalPayload = dataPayload;
-          }
-          result = await addUser(finalPayload);
-          toast.success("User Added", { description: `${result.firstName} ${result.lastName} has been successfully added.` });
-          form.reset(); // Reset form only on successful add
+        // --- ADD LOGIC ---
+        // Clean payload if id accidentally exists (shouldn't with current setup, but good practice)
+        let finalPayload: NewUserData;
+        if ('id' in dataPayload) {
+          const { id, ...cleanDataPayload } = dataPayload as NewUserData & { id: string };
+          finalPayload = cleanDataPayload;
+        } else {
+          finalPayload = dataPayload;
+        }
+        result = await addUser(finalPayload);
+        toast.success("User Added", { description: `${result.firstName} ${result.lastName} has been successfully added.` });
+        form.reset(); // Reset form only on successful add
       }
 
       // Call onSuccess callback with the result from the API
@@ -305,7 +335,7 @@ export function AddUserForm({
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email {initialData ? null : <span className="text-red-500">*</span>}</FormLabel>
+                <FormLabel>Email</FormLabel>
                 <FormControl>
                   <div className="relative flex items-center">
                     <Input type="email" {...field} disabled={isDisabled} className={cn(isDisabled && "pr-10")} />
@@ -384,13 +414,14 @@ export function AddUserForm({
 
         {/* Address Section (Outside main grid) */}
         <h3 className="text-lg font-medium pt-4 border-t">Address</h3>
+        <p className="text-sm text-muted-foreground mb-4">If any address field is filled, all fields become required.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="address.street"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Street</FormLabel>
+                <FormLabel>Street <span className="text-amber-500">*</span></FormLabel>
                 <FormControl>
                   <Input {...field} disabled={isDisabled} />
                 </FormControl>
@@ -403,7 +434,7 @@ export function AddUserForm({
             name="address.city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City</FormLabel>
+                <FormLabel>City <span className="text-amber-500">*</span></FormLabel>
                 <FormControl>
                   <Input {...field} disabled={isDisabled} />
                 </FormControl>
@@ -416,7 +447,7 @@ export function AddUserForm({
             name="address.state"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>State</FormLabel>
+                <FormLabel>State <span className="text-amber-500">*</span></FormLabel>
                 <FormControl>
                   <Input {...field} disabled={isDisabled} />
                 </FormControl>
@@ -429,7 +460,7 @@ export function AddUserForm({
             name="address.postalCode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Postal Code</FormLabel>
+                <FormLabel>Postal Code <span className="text-amber-500">*</span></FormLabel>
                 <FormControl>
                   <Input {...field} disabled={isDisabled} />
                 </FormControl>
@@ -442,7 +473,7 @@ export function AddUserForm({
             name="address.country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Country</FormLabel>
+                <FormLabel>Country <span className="text-amber-500">*</span></FormLabel>
                 <FormControl>
                   <Input {...field} disabled={isDisabled} />
                 </FormControl>

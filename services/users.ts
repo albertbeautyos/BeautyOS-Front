@@ -63,7 +63,7 @@ export interface NewUserData {
   firstName: string;
   lastName: string;
   phone: string;
-  email: string;
+  email?: string;
   profileImage?: string;
   gender?: string;
   pronouns?: string;
