@@ -27,13 +27,18 @@ const locationSchema = z.object({
   coordinates: z.array(z.number()) // Removed default
 });
 
-// Basic address schema that can be empty
+// Basic address schema with individual error messages
 const addressSchema = z.object({
-  street: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  postalCode: z.string().optional(),
-  country: z.string().optional(),
+  street: z.string().optional()
+    .refine(val => !val || val.trim() !== "", { message: "Street cannot be empty if provided" }),
+  city: z.string().optional()
+    .refine(val => !val || val.trim() !== "", { message: "City cannot be empty if provided" }),
+  state: z.string().optional()
+    .refine(val => !val || val.trim() !== "", { message: "State cannot be empty if provided" }),
+  postalCode: z.string().optional()
+    .refine(val => !val || val.trim() !== "", { message: "Postal code cannot be empty if provided" }),
+  country: z.string().optional()
+    .refine(val => !val || val.trim() !== "", { message: "Country cannot be empty if provided" }),
   location: locationSchema.optional()
 }).optional();
 
@@ -51,7 +56,8 @@ const formSchema = z.object({
   pronouns: z.string().optional(),
   birthday: z.date().optional().nullable(),
   address: addressSchema,
-  role: z.array(z.string()).min(1, { message: "At least one role is required." }).optional()
+  role: z.array(z.string()).min(1, { message: "At least one role is required." }).optional(),
+  salonId: z.string().optional() // Add salonId field as optional in the schema
 })
 // Add refine to handle the address validation
 .refine(
@@ -107,6 +113,18 @@ const parseDateFromInput = (value: string): Date | null => {
   return null;
 };
 
+// Helper function to check if address is empty with proper typing
+const isAddressEmpty = (address: FormData['address']) => {
+  if (!address) return true;
+  return (
+    (!address.street || address.street.trim() === '') &&
+    (!address.city || address.city.trim() === '') &&
+    (!address.state || address.state.trim() === '') &&
+    (!address.postalCode || address.postalCode.trim() === '') &&
+    (!address.country || address.country.trim() === '')
+  );
+};
+
 interface AddUserFormProps {
     initialData?: Partial<NewUserData> & { id?: string };
     isInitiallyEditing?: boolean;
@@ -151,7 +169,8 @@ export function AddUserForm({
           coordinates: initialData?.address?.location?.coordinates ?? [0, 0] // Provide default
         }
       },
-      role: initialData?.role ?? ["PROFESSIONAL"]
+      role: initialData?.role ?? ["PROFESSIONAL"],
+      salonId: initialData?.salonId ?? "salon_1" // Provide default salonId
     }
   });
 
@@ -197,6 +216,7 @@ export function AddUserForm({
                 }
             },
             role: initialData.role ?? ["PROFESSIONAL"],
+            salonId: initialData.salonId ?? "salon_1" // Reset salonId
           });
       }
   }, [initialData, form.reset]);
@@ -204,9 +224,11 @@ export function AddUserForm({
   const onSubmit = async (values: FormData) => {
     setIsSubmitting(true);
     try {
-      // Prepare base payload
+      // Check if address is empty
+      const addressIsEmpty = isAddressEmpty(values.address);
+
+      // Prepare base payload - remove spread of values to have more control
       const dataPayload: NewUserData = {
-        ...values,
         firstName: values.firstName,
         lastName: values.lastName,
         phone: values.phone,
@@ -217,18 +239,22 @@ export function AddUserForm({
         profileImage: values.profileImage,
         pronouns: values.pronouns,
         birthday: values.birthday ?? undefined,
-        address: values.address
-          ? {
-              ...values.address,
-              location: values.address.location
-                ? {
-                    type: values.address.location.type,
-                    coordinates: values.address.location.coordinates
-                  }
-                : { type: "Point", coordinates: [0, 0] },
-            }
-          : undefined,
+        // Add salonId with a default value
+        salonId: values.salonId ?? "salon_1", // Use form value with fallback
       };
+
+      // Only add address if it's not empty
+      if (!addressIsEmpty && values.address) {
+        dataPayload.address = {
+          ...values.address,
+          location: values.address.location
+            ? {
+                type: values.address.location.type,
+                coordinates: values.address.location.coordinates
+              }
+            : { type: "Point", coordinates: [0, 0] }
+        };
+      }
 
       // Determine if we're updating an existing user
       const isUpdating = initialData && initialData.id && typeof initialData.id === 'string';
@@ -423,9 +449,17 @@ export function AddUserForm({
               <FormItem>
                 <FormLabel>Street <span className="text-amber-500">*</span></FormLabel>
                 <FormControl>
-                  <Input {...field} disabled={isDisabled} />
+                  <Input
+                    {...field}
+                    disabled={isDisabled}
+                    className={cn(form.formState.errors.address?.street ? "border-red-500" : "")}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage>
+                  {form.formState.errors.address?.street?.message && (
+                    <p className="text-red-500 text-sm">{form.formState.errors.address.street.message}</p>
+                  )}
+                </FormMessage>
               </FormItem>
             )}
           />
@@ -436,9 +470,17 @@ export function AddUserForm({
               <FormItem>
                 <FormLabel>City <span className="text-amber-500">*</span></FormLabel>
                 <FormControl>
-                  <Input {...field} disabled={isDisabled} />
+                  <Input
+                    {...field}
+                    disabled={isDisabled}
+                    className={cn(form.formState.errors.address?.city ? "border-red-500" : "")}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage>
+                  {form.formState.errors.address?.city?.message && (
+                    <p className="text-red-500 text-sm">{form.formState.errors.address.city.message}</p>
+                  )}
+                </FormMessage>
               </FormItem>
             )}
           />
@@ -449,9 +491,17 @@ export function AddUserForm({
               <FormItem>
                 <FormLabel>State <span className="text-amber-500">*</span></FormLabel>
                 <FormControl>
-                  <Input {...field} disabled={isDisabled} />
+                  <Input
+                    {...field}
+                    disabled={isDisabled}
+                    className={cn(form.formState.errors.address?.state ? "border-red-500" : "")}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage>
+                  {form.formState.errors.address?.state?.message && (
+                    <p className="text-red-500 text-sm">{form.formState.errors.address.state.message}</p>
+                  )}
+                </FormMessage>
               </FormItem>
             )}
           />
@@ -462,9 +512,17 @@ export function AddUserForm({
               <FormItem>
                 <FormLabel>Postal Code <span className="text-amber-500">*</span></FormLabel>
                 <FormControl>
-                  <Input {...field} disabled={isDisabled} />
+                  <Input
+                    {...field}
+                    disabled={isDisabled}
+                    className={cn(form.formState.errors.address?.postalCode ? "border-red-500" : "")}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage>
+                  {form.formState.errors.address?.postalCode?.message && (
+                    <p className="text-red-500 text-sm">{form.formState.errors.address.postalCode.message}</p>
+                  )}
+                </FormMessage>
               </FormItem>
             )}
           />
@@ -475,13 +533,26 @@ export function AddUserForm({
               <FormItem>
                 <FormLabel>Country <span className="text-amber-500">*</span></FormLabel>
                 <FormControl>
-                  <Input {...field} disabled={isDisabled} />
+                  <Input
+                    {...field}
+                    disabled={isDisabled}
+                    className={cn(form.formState.errors.address?.country ? "border-red-500" : "")}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage>
+                  {form.formState.errors.address?.country?.message && (
+                    <p className="text-red-500 text-sm">{form.formState.errors.address.country.message}</p>
+                  )}
+                </FormMessage>
               </FormItem>
             )}
           />
         </div>
+
+        {/* General address error message */}
+        {form.formState.errors.address && form.formState.errors.address.message && (
+          <p className="text-red-500 text-sm mt-2">{form.formState.errors.address.message}</p>
+        )}
 
         {/* Submit/Cancel/Delete Buttons */}
         {isInitiallyEditing && (
@@ -511,7 +582,20 @@ export function AddUserForm({
             </div>
         )}
 
-        {/* Hidden Role field remains the same */}
+        {/* Hidden salonId field */}
+        <FormField
+          control={form.control}
+          name="salonId"
+          render={({ field }) => (
+            <FormItem className="hidden">
+              <FormControl>
+                <Input {...field} type="hidden" />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {/* Hidden Role field */}
         <FormField
           control={form.control}
           name="role"

@@ -19,6 +19,7 @@ export interface User {
   birthday?: string | Date;
   address?: AddressData;
   role?: string[];
+  salonId?: string;
   // Keeping some optional fields that might be useful
   username?: string;
   referredBy?: string;
@@ -70,6 +71,7 @@ export interface NewUserData {
   birthday?: Date | string;
   address?: AddressData;
   role?: string[];
+  salonId?: string;
   // Keeping some optional fields that might be useful
   referredBy?: string;
   clientType?: string;
@@ -145,10 +147,7 @@ export const addUser = async (userData: NewUserData): Promise<User> => {
             // Set default role if not provided
             role: userData.role || ["USER"],
             // Ensure address location has the correct structure
-           address:{ ...userData.address, location: {
-            coordinates: [0, 0],
-            type: "Point"
-           }  }
+
         };
 
         // Expect the detailed User structure in the response
@@ -194,10 +193,7 @@ export const updateUser = async (id: string, userData: Partial<NewUserData>): Pr
     const dataToSend = {
       ...userData,
       birthday: userData.birthday instanceof Date ? userData.birthday.toISOString() : userData.birthday,
-     address:{ ...userData.address, location: {
-            coordinates: [0, 0],
-            type: "Point"
-           }  }
+
     };
 
     const response = await axiosInstance.put<User>(`/users/${id}`, dataToSend);

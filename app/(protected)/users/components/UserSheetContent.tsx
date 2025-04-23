@@ -52,6 +52,7 @@ const mapUserToFormData = (user: User | null): Partial<NewUserData> & { id?: str
                 }
             } : undefined,
             role: Array.isArray(user.role) ? user.role : ["PROFESSIONAL"],
+            salonId: user.salonId || "salon_1",
         };
     } catch (error) {
         console.error("Error mapping user data:", error);
@@ -63,6 +64,7 @@ const mapUserToFormData = (user: User | null): Partial<NewUserData> & { id?: str
             role: ["PROFESSIONAL"],
             gender: user.gender || "Male",
             profileImage: user.profileImage || "",
+            salonId: "salon_1",
         };
     }
 };
