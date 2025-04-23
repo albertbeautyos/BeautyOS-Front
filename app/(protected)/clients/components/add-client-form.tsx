@@ -22,13 +22,24 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // For conditional classnames
 
 // --- Updated Zod Schema ---
+const locationSchema = z.object({
+  type: z.string(), // No default
+  coordinates: z.array(z.number()) // No default
+});
+
+// Basic address schema with individual error messages
 const addressSchema = z.object({
-    street: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
-    postalCode: z.string().optional(),
-    country: z.string().optional(),
-    // Location is omitted for simplicity in the form for now
+    street: z.string().optional()
+      .refine(val => !val || val.trim() !== "", { message: "Street cannot be empty if provided" }),
+    city: z.string().optional()
+      .refine(val => !val || val.trim() !== "", { message: "City cannot be empty if provided" }),
+    state: z.string().optional()
+      .refine(val => !val || val.trim() !== "", { message: "State cannot be empty if provided" }),
+    postalCode: z.string().optional()
+      .refine(val => !val || val.trim() !== "", { message: "Postal code cannot be empty if provided" }),
+    country: z.string().optional()
+      .refine(val => !val || val.trim() !== "", { message: "Country cannot be empty if provided" }),
+    location: locationSchema.optional() // Location is optional
 }).optional();
 
 const formSchema = z.object({
@@ -42,8 +53,52 @@ const formSchema = z.object({
   clientType: z.string().optional(), // Changed from required to optional
   birthday: z.date().optional().nullable(), // Allow null for empty input
   address: addressSchema,
-});
+  salonId: z.string().optional() // Add salonId field as optional in the schema
+})
+// Add refine to handle the address validation
+.refine(
+  (data) => {
+    // If no address data provided, that's valid
+    if (!data.address) return true;
+
+    // Check if any address field has a value
+    const hasAnyAddressValue =
+      !!data.address.street ||
+      !!data.address.city ||
+      !!data.address.state ||
+      !!data.address.postalCode ||
+      !!data.address.country;
+
+    // If no fields have values, that's valid
+    if (!hasAnyAddressValue) return true;
+
+    // If any field has a value, all required fields must have values
+    return (
+      !!data.address.street &&
+      !!data.address.city &&
+      !!data.address.state &&
+      !!data.address.postalCode &&
+      !!data.address.country
+    );
+  },
+  {
+    message: "If any address field is filled, all address fields (street, city, state, postal code, country) are required",
+    path: ["address"], // Point to the address field
+  }
+);
 // ---
+
+// Helper function to check if address is empty with proper typing
+const isAddressEmpty = (address: z.infer<typeof formSchema>['address']) => {
+  if (!address) return true;
+  return (
+    (!address.street || address.street.trim() === '') &&
+    (!address.city || address.city.trim() === '') &&
+    (!address.state || address.state.trim() === '') &&
+    (!address.postalCode || address.postalCode.trim() === '') &&
+    (!address.country || address.country.trim() === '')
+  );
+};
 
 // Helper function to format Date to YYYY-MM-DD
 const formatDateForInput = (date: Date | undefined | null): string => {
@@ -68,7 +123,7 @@ const parseDateFromInput = (value: string): Date | null => {
 };
 
 interface AddClientFormProps {
-    initialData?: Partial<NewClientData> & { id?: string; birthday?: string | Date | null }; // Adjust birthday type
+    initialData?: Partial<NewClientData> & { id?: string; birthday?: string | Date | null; salonId?: string }; // Added salonId
     isInitiallyEditing?: boolean; // Control initial mode - THIS WILL NOW BE THE ONLY SOURCE OF TRUTH FOR EDIT STATE
     onSuccess?: (data: NewClientData | Client) => void; // Updated type
     onCancelEdit?: () => void; // Optional callback for cancelling edit
@@ -113,12 +168,21 @@ export function AddClientForm({
             state: initialData.address?.state ?? "",
             postalCode: initialData.address?.postalCode ?? "",
             country: initialData.address?.country ?? "",
+            location: {
+              type: initialData.address?.location?.type ?? "Point", // Provide default
+              coordinates: initialData.address?.location?.coordinates ?? [0, 0] // Provide default
+            }
         },
+        salonId: initialData.salonId ?? "salon_1" // Provide default salonId
     } : {
         // Default empty values if no initialData
         firstName: "", lastName: "", phone: "", email: "", gender: "",
         pronouns: "", referredBy: "", clientType: "", birthday: undefined,
-        address: { street: "", city: "", state: "", postalCode: "", country: "" },
+        address: {
+          street: "", city: "", state: "", postalCode: "", country: "",
+          location: { type: "Point", coordinates: [0, 0] }
+        },
+        salonId: "salon_1" // Default salonId
     },
   });
 
@@ -145,7 +209,7 @@ export function AddClientForm({
             lastName: initialData.lastName ?? "",
             phone: initialData.phone ?? "",
             email: initialData.email ?? "",
-            gender: initialData.gender ?? "",
+            gender: initialData.gender ? initialData.gender:"opt-out",
             pronouns: initialData.pronouns ?? "",
             referredBy: initialData.referredBy ?? "",
             clientType: initialData.clientType ?? "",
@@ -156,7 +220,12 @@ export function AddClientForm({
                 state: initialData.address?.state ?? "",
                 postalCode: initialData.address?.postalCode ?? "",
                 country: initialData.address?.country ?? "",
+                location: {
+                  type: initialData.address?.location?.type ?? "Point", // Reset with default
+                  coordinates: initialData.address?.location?.coordinates ?? [0, 0] // Reset with default
+                }
             },
+            salonId: initialData.salonId ?? "salon_1" // Reset salonId
           });
       }
   }, [initialData, form.reset]); // form.reset is stable
@@ -165,18 +234,37 @@ export function AddClientForm({
     setIsSubmitting(true);
 
     try {
-        // Create base payload, ensuring birthday is formatted correctly if needed by API
-        // (Assuming API handles Date object or ISO string)
+        // Check if address is empty
+        const addressIsEmpty = isAddressEmpty(values.address);
+
+        // Create base payload - remove spread of values to have more control
         const dataPayload: NewClientData = {
-            ...values,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            phone: values.phone,
+            email: values.email,
             // API service functions already handle Date -> ISO string conversion
-            // No explicit conversion needed here if values.birthday is a Date object
             birthday: values.birthday ?? undefined, // Send undefined if null
-            gender:values.gender?values.gender :'opt-out',
-            address: (values.address && Object.values(values.address).some(v => v))
-                ? values.address
-                : undefined,
+            gender: values.gender ?values.gender: 'opt-out',
+            pronouns: values.pronouns,
+            referredBy: values.referredBy,
+            clientType: values.clientType,
+            // Add salonId with a default value
+            salonId: values.salonId ?? "salon_1", // Use form value with fallback
         };
+
+        // Only add address if it's not empty
+        if (!addressIsEmpty && values.address) {
+          dataPayload.address = {
+            ...values.address,
+            location: values.address.location
+              ? {
+                  type: values.address.location.type,
+                  coordinates: values.address.location.coordinates
+                }
+              : { type: "Point", coordinates: [0, 0] }
+          };
+        }
 
         // Determine if we're updating an existing client
         const isUpdating = initialData && initialData.id && typeof initialData.id === 'string';
@@ -392,19 +480,28 @@ export function AddClientForm({
           />
         </div>
 
-        {/* Address Fields */}
+        {/* Address Fields - updated with validation error display */}
         <h3 className="text-lg font-medium pt-4 border-t">Address</h3>
+        <p className="text-sm text-muted-foreground mb-4">If any address field is filled, all fields become required.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
                 control={form.control}
                 name="address.street"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Street</FormLabel>
+                    <FormLabel>Street <span className="text-amber-500">*</span></FormLabel>
                     <FormControl>
-                        <Input {...field} disabled={isDisabled} />
+                        <Input
+                          {...field}
+                          disabled={isDisabled}
+                          className={cn(form.formState.errors.address?.street ? "border-red-500" : "")}
+                        />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage>
+                      {form.formState.errors.address?.street?.message && (
+                        <p className="text-red-500 text-sm">{form.formState.errors.address.street.message}</p>
+                      )}
+                    </FormMessage>
                     </FormItem>
                 )}
             />
@@ -413,11 +510,19 @@ export function AddClientForm({
                 name="address.city"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>City</FormLabel>
+                    <FormLabel>City <span className="text-amber-500">*</span></FormLabel>
                     <FormControl>
-                        <Input {...field} disabled={isDisabled} />
+                        <Input
+                          {...field}
+                          disabled={isDisabled}
+                          className={cn(form.formState.errors.address?.city ? "border-red-500" : "")}
+                        />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage>
+                      {form.formState.errors.address?.city?.message && (
+                        <p className="text-red-500 text-sm">{form.formState.errors.address.city.message}</p>
+                      )}
+                    </FormMessage>
                     </FormItem>
                 )}
             />
@@ -426,11 +531,19 @@ export function AddClientForm({
                 name="address.state"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>State</FormLabel>
+                    <FormLabel>State <span className="text-amber-500">*</span></FormLabel>
                     <FormControl>
-                        <Input {...field} disabled={isDisabled} />
+                        <Input
+                          {...field}
+                          disabled={isDisabled}
+                          className={cn(form.formState.errors.address?.state ? "border-red-500" : "")}
+                        />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage>
+                      {form.formState.errors.address?.state?.message && (
+                        <p className="text-red-500 text-sm">{form.formState.errors.address.state.message}</p>
+                      )}
+                    </FormMessage>
                     </FormItem>
                 )}
             />
@@ -439,11 +552,19 @@ export function AddClientForm({
                 name="address.postalCode"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Postal Code</FormLabel>
+                    <FormLabel>Postal Code <span className="text-amber-500">*</span></FormLabel>
                     <FormControl>
-                        <Input {...field} disabled={isDisabled} />
+                        <Input
+                          {...field}
+                          disabled={isDisabled}
+                          className={cn(form.formState.errors.address?.postalCode ? "border-red-500" : "")}
+                        />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage>
+                      {form.formState.errors.address?.postalCode?.message && (
+                        <p className="text-red-500 text-sm">{form.formState.errors.address.postalCode.message}</p>
+                      )}
+                    </FormMessage>
                     </FormItem>
                 )}
             />
@@ -452,15 +573,28 @@ export function AddClientForm({
                 name="address.country"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Country</FormLabel>
+                    <FormLabel>Country <span className="text-amber-500">*</span></FormLabel>
                     <FormControl>
-                        <Input {...field} disabled={isDisabled} />
+                        <Input
+                          {...field}
+                          disabled={isDisabled}
+                          className={cn(form.formState.errors.address?.country ? "border-red-500" : "")}
+                        />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage>
+                      {form.formState.errors.address?.country?.message && (
+                        <p className="text-red-500 text-sm">{form.formState.errors.address.country.message}</p>
+                      )}
+                    </FormMessage>
                     </FormItem>
                 )}
             />
         </div>
+
+        {/* General address error message */}
+        {form.formState.errors.address && form.formState.errors.address.message && (
+          <p className="text-red-500 text-sm mt-2">{form.formState.errors.address.message}</p>
+        )}
 
         {/* Submit, Cancel, and Delete Buttons at the end */}
         {/* Only show if in edit mode */}
@@ -494,6 +628,19 @@ export function AddClientForm({
                 </Button>
             </div>
         )}
+
+        {/* Hidden salonId field */}
+        <FormField
+          control={form.control}
+          name="salonId"
+          render={({ field }) => (
+            <FormItem className="hidden">
+              <FormControl>
+                <Input {...field} type="hidden" />
+              </FormControl>
+            </FormItem>
+          )}
+        />
       </form>
     </Form>
   );

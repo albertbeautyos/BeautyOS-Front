@@ -18,6 +18,7 @@ export interface Client {
   clientType?: string; // Now part of the main Client type
   birthday?: string | Date; // Keep Date for potential use, but API likely uses string
   address?: AddressData; // Added AddressData back
+  salonId?: string; // Add salonId field
   status?: string; // Added field
   showRate?: number;
   avgVisit?: number;
@@ -66,6 +67,7 @@ export interface NewClientData {
   clientType?: string; // Made required as per user request
   birthday?: Date | string; // Allow string initially, convert before sending
   address?: AddressData; // Make address optional initially
+  salonId?: string; // Add salonId field
 }
 
 /**
@@ -134,10 +136,14 @@ export const addClient = async (clientData: NewClientData): Promise<Client> => {
             // Ensure birthday is ISO string if it's a Date object
             birthday: clientData.birthday instanceof Date ? clientData.birthday.toISOString() : clientData.birthday,
             clientType: clientData.clientType || "REGULAR",
-           address:{ ...clientData.address, location: {
-            coordinates: [0, 0],
-            type: "Point"
-           }  }
+            salonId: clientData.salonId || "salon_1", // Provide default salonId
+            address: clientData.address ? {
+                ...clientData.address,
+                location: {
+                    coordinates: [0, 0],
+                    type: "Point"
+                }
+            } : undefined
         };
         // Expect the detailed Client structure in the response
         const response = await axiosInstance.post<Client>('/clients', dataToSend);
@@ -182,10 +188,14 @@ export const updateClient = async (id: string, clientData: Partial<NewClientData
     const dataToSend = {
       ...clientData,
       birthday: clientData.birthday instanceof Date ? clientData.birthday.toISOString() : clientData.birthday,
-       address:{ ...clientData.address, location: {
+      salonId: clientData.salonId || "salon_1", // Provide default salonId
+      address: clientData.address ? {
+        ...clientData.address,
+        location: {
             coordinates: [0, 0],
             type: "Point"
-           }  }
+        }
+      } : undefined
     };
 
     const response = await axiosInstance.put<Client>(`/clients/${id}`, dataToSend);

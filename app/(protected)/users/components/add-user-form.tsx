@@ -155,7 +155,7 @@ export function AddUserForm({
       phone: initialData?.phone ?? "",
       email: initialData?.email ?? "",
       profileImage: initialData?.profileImage ?? "",
-      gender: initialData?.gender ?? "Male",
+      gender: initialData?.gender ?? "opt-out",
       pronouns: initialData?.pronouns ?? "",
       birthday: initialData?.birthday ? new Date(initialData.birthday) : null,
       address: {
@@ -201,7 +201,7 @@ export function AddUserForm({
             phone: initialData.phone ?? "",
             email: initialData.email ?? undefined,
             profileImage: initialData.profileImage ?? "",
-            gender: initialData.gender ?? "Male",
+            gender: initialData.gender ?? "opt-out",
             pronouns: initialData.pronouns ?? "",
             birthday: initialData.birthday ? new Date(initialData.birthday) : null,
             address: {
