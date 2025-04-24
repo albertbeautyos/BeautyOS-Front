@@ -53,13 +53,18 @@ export const columns: ColumnDef<User>[] = [
   },
   {
     id: "name",
-    accessorFn: row => `${row.firstName} ${row.lastName}`,
+    accessorFn: row => `${row.firstName || ''} ${row.lastName || ''}`,
     header: ({ column }) => (
        <DataTableColumnHeader column={column} title="Name" />
      ),
-    cell: ({ row }) => <div>{`${row.original.firstName} ${row.original.lastName}`}</div>,
+    cell: ({ row }) => {
+      const firstName = row.original.firstName || '';
+      const lastName = row.original.lastName || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      return <div>{fullName || "N/A"}</div>;
+    },
     filterFn: (row, id, value) => {
-        const name = `${row.original.firstName} ${row.original.lastName}`;
+        const name = `${row.original.firstName || ''} ${row.original.lastName || ''}`;
         return name.toLowerCase().includes(String(value).toLowerCase());
     },
     enableSorting: true,
@@ -70,18 +75,24 @@ export const columns: ColumnDef<User>[] = [
     header: ({ column }) => (
        <DataTableColumnHeader column={column} title="Email" />
      ),
-    cell: ({ row }) => <div>{row.getValue("email")}</div>,
-     filterFn: (row, id, value) => String(row.getValue(id)).toLowerCase().includes(String(value).toLowerCase()),
-     meta: {
+    cell: ({ row }) => {
+      const value = row.getValue("email") as string | undefined | null;
+      return <div>{value || "N/A"}</div>;
+    },
+    filterFn: (row, id, value) => String(row.getValue(id)).toLowerCase().includes(String(value).toLowerCase()),
+    meta: {
       mobileHidden: false, // Hide on mobile
     },
   },
    {
     accessorKey: "phone",
-     header: ({ column }) => (
-       <DataTableColumnHeader column={column} title="Phone" />
-     ),
-    cell: ({ row }) => <div>{row.getValue("phone")}</div>,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Phone" />
+    ),
+    cell: ({ row }) => {
+      const value = row.getValue("phone") as string | undefined | null;
+      return <div>{value || "N/A"}</div>;
+    },
     // No meta needed, visible by default
   },
   {
@@ -89,7 +100,10 @@ export const columns: ColumnDef<User>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Level" />
     ),
-    cell: ({ row }) => <div className="text-center">{row.getValue("level") || 'N/A'}</div>,
+    cell: ({ row }) => {
+      const value = row.getValue("level") as string | number | undefined | null;
+      return <div className="text-center">{value || 'N/A'}</div>;
+    },
     meta: {
       mobileHidden: false, // Hide on mobile
     },
@@ -99,7 +113,10 @@ export const columns: ColumnDef<User>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Services" />
     ),
-    cell: ({ row }) => <div className="text-center">{row.getValue("services") || 'N/A'}</div>,
+    cell: ({ row }) => {
+      const value = row.getValue("services") as string | string[] | undefined | null;
+      return <div className="text-center">{value ? (Array.isArray(value) ? value.join(', ') : value) : 'N/A'}</div>;
+    },
     meta: {
       mobileHidden: false, // Hide on mobile
     },
@@ -110,7 +127,7 @@ export const columns: ColumnDef<User>[] = [
       <DataTableColumnHeader column={column} title="Rating" />
     ),
     cell: ({ row }) => {
-      const value = row.getValue("rating");
+      const value = row.getValue("rating") as number | undefined | null;
       return <div className="text-center">{typeof value === 'number' ? value.toFixed(1) : 'N/A'}</div>;
     },
     meta: {
@@ -123,8 +140,8 @@ export const columns: ColumnDef<User>[] = [
       <DataTableColumnHeader column={column} title="Role" />
     ),
     cell: ({ row }) => {
-      const roles = row.getValue("role") as string[] | undefined;
-      return <div>{roles ? roles.join(', ') : 'N/A'}</div>;
+      const roles = row.getValue("role") as string[] | undefined | null;
+      return <div>{roles && Array.isArray(roles) ? roles.join(', ') : 'N/A'}</div>;
     },
     meta: {
       mobileHidden: false, // Hide on mobile

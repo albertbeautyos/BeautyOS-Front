@@ -53,13 +53,18 @@ export const columns: ColumnDef<Client>[] = [
   },
   {
     id: "name",
-    accessorFn: row => `${row.firstName} ${row.lastName}`,
+    accessorFn: row => `${row.firstName || ''} ${row.lastName || ''}`,
     header: ({ column }) => (
        <DataTableColumnHeader column={column} title="Name" />
      ),
-    cell: ({ row }) => <div>{`${row.original.firstName} ${row.original.lastName}`}</div>,
+    cell: ({ row }) => {
+      const firstName = row.original.firstName || '';
+      const lastName = row.original.lastName || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      return <div>{fullName || "N/A"}</div>;
+    },
     filterFn: (row, id, value) => {
-        const name = `${row.original.firstName} ${row.original.lastName}`;
+        const name = `${row.original.firstName || ''} ${row.original.lastName || ''}`;
         return name.toLowerCase().includes(String(value).toLowerCase());
     },
     enableSorting: true,
@@ -70,7 +75,10 @@ export const columns: ColumnDef<Client>[] = [
     header: ({ column }) => (
        <DataTableColumnHeader column={column} title="Email" />
      ),
-    cell: ({ row }) => <div>{row.getValue("email")}</div>,
+    cell: ({ row }) => {
+      const value = row.getValue("email") as string | undefined | null;
+      return <div>{value ? value : "N/A"}</div>;
+    },
      filterFn: (row, id, value) => String(row.getValue(id)).toLowerCase().includes(String(value).toLowerCase()),
      meta: {
       mobileHidden: false, // Hide on mobile
@@ -81,7 +89,10 @@ export const columns: ColumnDef<Client>[] = [
      header: ({ column }) => (
        <DataTableColumnHeader column={column} title="Phone" />
      ),
-    cell: ({ row }) => <div>{row.getValue("phone")}</div>,
+    cell: ({ row }) => {
+      const value = row.getValue("phone") as string | undefined | null;
+      return <div>{value ? value : "N/A"}</div>;
+    },
     // No meta needed, visible by default
   },
   {
@@ -89,7 +100,10 @@ export const columns: ColumnDef<Client>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Visits" />
     ),
-    cell: ({ row }) => <div className="text-center">{row.getValue("visits")}</div>,
+    cell: ({ row }) => {
+      const value = row.getValue("visits") as number | undefined | null;
+      return <div className="text-center">{value !== undefined && value !== null ? value : "N/A"}</div>;
+    },
     meta: {
       mobileHidden: false, // Hide on mobile
     },
@@ -100,7 +114,7 @@ export const columns: ColumnDef<Client>[] = [
       <DataTableColumnHeader column={column} title="Avg Visit" />
     ),
     cell: ({ row }) => {
-      const value = row.getValue("avgVisit");
+      const value = row.getValue("avgVisit") as number | undefined | null;
       return <div className="text-center">{typeof value === 'number' ? value.toFixed(1) : 'N/A'}</div>;
     },
     meta: {
@@ -113,7 +127,7 @@ export const columns: ColumnDef<Client>[] = [
       <DataTableColumnHeader column={column} title="Avg Value" />
     ),
     cell: ({ row }) => {
-        const value = row.getValue("avgVisitValue");
+        const value = row.getValue("avgVisitValue") as number | undefined | null;
         return <div className="text-center">{typeof value === 'number' ? `$${value.toFixed(2)}` : 'N/A'}</div>;
     },
     meta: {
