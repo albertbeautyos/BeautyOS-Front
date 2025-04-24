@@ -176,6 +176,7 @@ const authSlice = createSlice({
             address: action.payload.address,
             role: action.payload.role,
             status: action.payload.status,
+            salons: action.payload.salons
         };
         state.loginAttemptId = null;
         state.error = null;
@@ -233,3 +234,4 @@ export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenti
 export const selectAuthLoading = (state: RootState) => state.auth.loading;
 export const selectAuthError = (state: RootState) => state.auth.error;
 export const selectInitialCheckComplete = (state: RootState) => state.auth.initialCheckComplete;
+export const selectSalonId=(state: RootState) => state.auth.userInfo?.salons[0]?.id;

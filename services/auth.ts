@@ -33,7 +33,9 @@ export interface LoginResponse {
     role: string[];
     status: string;
     accessToken: string;
-    refreshToken?: string; // Make refreshToken optional if not always returned
+    refreshToken?: string;
+    salons:{id:string,isSingle:boolean}[]
+    // Make refreshToken optional if not always returned
 }
 
 // Define expected response structure for sending the code

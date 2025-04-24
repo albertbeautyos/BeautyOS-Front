@@ -35,6 +35,7 @@ export interface UserData {
     lastName: string;
     firstName: string;
     id: string;
+    salons:{id:string,isSingle:boolean}[]
 }
 
 // Constants for token keys (matching axiosInstance.ts)

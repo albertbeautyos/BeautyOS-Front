@@ -10,7 +10,7 @@ import Link from "next/link";
 import { LocalStorageManager } from "@/helpers/localStorageManager";
 import { sendLoginCode, verifyOtpAndLogin } from "@/services/auth";
 import { useAppDispatch } from "@/store/hooks";
-import { verifyOtpThunk } from "@/store/slices/authSlice";
+import { fetchCurrentUserThunk, verifyOtpThunk } from "@/store/slices/authSlice";
 import { useRouter } from "next/navigation";
 
 interface ApiErrorResponse {
@@ -110,7 +110,8 @@ export function LoginForm({
     setErrors({});
 
     try {
-     dispatch(verifyOtpThunk({ loginAttemptId: currentLoginId, otp: verificationCode, rememberMe }))
+    await dispatch(verifyOtpThunk({ loginAttemptId: currentLoginId, otp: verificationCode, rememberMe }))
+    await  dispatch(fetchCurrentUserThunk())
      router.push('/dashboard')
     } catch (error) {
       setErrors({ api: getErrorMessage(error) });
