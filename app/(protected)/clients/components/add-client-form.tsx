@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { addClient, NewClientData, Client, updateClient } from '@/services/clients';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // For conditional classnames
+import { useAppSelector } from '@/store/hooks';
+import { selectSalonId } from '@/store/slices/authSlice';
 
 // --- Updated Zod Schema ---
 const locationSchema = z.object({
@@ -141,8 +143,10 @@ export function AddClientForm({
     className,
     submitButtonLabel = initialData ? "Save Changes" : "Add Client" // Default label based on mode
 }: AddClientFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const salonId=useAppSelector(selectSalonId)
+  const [isSubmitting, setIsSubmitting] = useState(false);
+console.log(salonId,'gggggg')
   // Function to safely create a Date from initial data
   const getInitialDate = (birthday: string | Date | undefined | null): Date | undefined => {
     if (!birthday) return undefined;
@@ -152,6 +156,7 @@ export function AddClientForm({
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    reValidateMode: "onChange",
     defaultValues: initialData ? { // Populate with initialData or defaults
         firstName: initialData.firstName ?? "",
         lastName: initialData.lastName ?? "",
@@ -173,7 +178,7 @@ export function AddClientForm({
               coordinates: initialData.address?.location?.coordinates ?? [0, 0] // Provide default
             }
         },
-        salonId: initialData.salonId ?? "salon_1" // Provide default salonId
+        salonId: initialData.salonId ?? salonId // Provide default salonId
     } : {
         // Default empty values if no initialData
         firstName: "", lastName: "", phone: "", email: "", gender: "",
@@ -182,7 +187,7 @@ export function AddClientForm({
           street: "", city: "", state: "", postalCode: "", country: "",
           location: { type: "Point", coordinates: [0, 0] }
         },
-        salonId: "salon_1" // Default salonId
+        salonId: salonId // Provide default salonId
     },
   });
 
@@ -225,7 +230,7 @@ export function AddClientForm({
                   coordinates: initialData.address?.location?.coordinates ?? [0, 0] // Reset with default
                 }
             },
-            salonId: initialData.salonId ?? "salon_1" // Reset salonId
+            salonId: initialData.salonId ?initialData.salonId : salonId // Reset salonId
           });
       }
   }, [initialData, form.reset]); // form.reset is stable
@@ -250,7 +255,7 @@ export function AddClientForm({
             referredBy: values.referredBy,
             clientType: values.clientType,
             // Add salonId with a default value
-            salonId: values.salonId ?? "salon_1", // Use form value with fallback
+            salonId: values.salonId, // Use form value with fallback
         };
 
         // Only add address if it's not empty
@@ -270,8 +275,11 @@ export function AddClientForm({
         const isUpdating = initialData && initialData.id && typeof initialData.id === 'string';
 
         if (isUpdating && initialData?.id) {
+          const {salonId ,...updatePayload}=dataPayload;
             // UPDATE LOGIC
-            const updatedClient = await updateClient(initialData.id, dataPayload);
+
+
+            const updatedClient = await updateClient(initialData.id, updatePayload);
             toast.success("Client Updated", { description: `${updatedClient.firstName} ${updatedClient.lastName} details updated.` });
             onSuccess?.(updatedClient);
         } else {

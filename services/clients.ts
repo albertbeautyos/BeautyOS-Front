@@ -128,6 +128,7 @@ export const getClients = async (
  * @throws Throws an error if the API call fails.
  */
 export const addClient = async (clientData: NewClientData): Promise<Client> => {
+  console.log("Adding client with data:", clientData);
     try {
         // Ensure data matches the exact request structure
         // Remove any fields from clientData that are not in NewClientData definition if necessary
@@ -136,7 +137,7 @@ export const addClient = async (clientData: NewClientData): Promise<Client> => {
             // Ensure birthday is ISO string if it's a Date object
             birthday: clientData.birthday instanceof Date ? clientData.birthday.toISOString() : clientData.birthday,
             clientType: clientData.clientType || "REGULAR",
-            salonId: clientData.salonId || "salon_1", // Provide default salonId
+            salonId: clientData.salonId , // Provide default salonId
             address: clientData.address ? {
                 ...clientData.address,
                 location: {
@@ -188,7 +189,7 @@ export const updateClient = async (id: string, clientData: Partial<NewClientData
     const dataToSend = {
       ...clientData,
       birthday: clientData.birthday instanceof Date ? clientData.birthday.toISOString() : clientData.birthday,
-      salonId: clientData.salonId || "salon_1", // Provide default salonId
+      salonId: clientData.salonId, // Provide default salonId
       address: clientData.address ? {
         ...clientData.address,
         location: {

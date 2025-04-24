@@ -56,7 +56,7 @@ const mapClientToFormData = (client: Client | null): Partial<NewClientData> & { 
                 country: client.address.country,
                 location: client.address.location
             } : undefined,
-            salonId: client.salonId || "salon_1", // Add salonId with default
+            salonId: client.salonId, // Add salonId with default
         };
     } catch (error) {
         console.error("Error mapping client data:", error);
