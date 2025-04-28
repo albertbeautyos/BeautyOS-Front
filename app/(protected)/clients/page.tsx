@@ -187,7 +187,6 @@ export default function DashboardClientsPage() {
   // --- Delete Confirmation Handler ---
   const confirmDelete = useCallback(async () => {
     if (!clientToDelete) return;
-    console.log("Confirming delete for:", clientToDelete.id); // Keep log for debugging
     try {
       // Use the actual deleteClient service
       await deleteClient(clientToDelete.id);

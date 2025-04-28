@@ -1,6 +1,7 @@
 
 export const ACCESS_TOKEN = 'accessToken';
 export const REFRESH_TOKEN = 'refreshToken';
+export const SELECTED_SALON_ID = 'selectedSalonId';
 
 
 export enum PUBLIC_ROUTES{

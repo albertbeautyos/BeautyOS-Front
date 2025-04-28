@@ -49,17 +49,14 @@ export default function ProtectedLayout({
   // Effect to check authentication status on initial load
   useEffect(() => {
     if (!initialCheckComplete) {
-        console.log("ProtectedLayout: Initial check not complete, dispatching fetchCurrentUserThunk...");
         dispatch(fetchCurrentUserThunk());
     }
   }, [dispatch, initialCheckComplete]);
 
   // Effect to handle redirection if not authenticated after check
   useEffect(() => {
-    console.log(`ProtectedLayout: Auth state change check - initialCheckComplete: ${initialCheckComplete}, loading: ${loading}, isAuthenticated: ${isAuthenticated}`);
     // Only redirect if the check is complete, loading is idle, and user is not authenticated.
     if (initialCheckComplete && loading === 'idle' && !isAuthenticated) {
-        console.log("ProtectedLayout: Redirecting to /login...");
         router.replace(PUBLIC_ROUTES.LOGIN);
     }
   }, [isAuthenticated, initialCheckComplete, loading, router]);

@@ -146,7 +146,6 @@ export function AddClientForm({
 
   const salonId=useAppSelector(selectSalonId)
   const [isSubmitting, setIsSubmitting] = useState(false);
-console.log(salonId,'gggggg')
   // Function to safely create a Date from initial data
   const getInitialDate = (birthday: string | Date | undefined | null): Date | undefined => {
     if (!birthday) return undefined;

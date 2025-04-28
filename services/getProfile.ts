@@ -59,10 +59,15 @@ export const getCurrentUser = async (): Promise<UserData> => {
     }
 
     try {
-        console.log("Fetching /users/me..."); // Token info removed as interceptor handles it
         // No need to manually set Authorization header, the interceptor does it
         const response = await axiosInstance.get<UserData>('/users/me');
-        console.log("Successfully fetched user data:", response.data);
+        const selectedSalonId =LocalStorageManager.get('SELECTED_SALON_ID');
+
+        if(!selectedSalonId){
+            LocalStorageManager.set('selectedSalonId',response.data.salons[0].id);
+
+        }
+
         return response.data;
     } catch (error: unknown) {
         console.error("Failed to fetch current user:", error);

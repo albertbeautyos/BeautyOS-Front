@@ -37,7 +37,6 @@ export function DataTableRowActions<TData>({
   };
 
   const handleDelete = () => {
-    console.log("Delete requested for row:", row.original);
     onDelete?.();
   };
 

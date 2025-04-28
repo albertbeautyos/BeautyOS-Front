@@ -120,7 +120,6 @@ axiosInstance.interceptors.response.use(
       }
 
       try {
-        console.log('Attempting to refresh token...');
         // Replace '/auth/refresh' with your actual refresh token endpoint
         const refreshResponse = await axios.post<RefreshResponse>(
           `${API_BASE_URL}/auth/refresh`, // Use the base URL + refresh endpoint
@@ -130,7 +129,6 @@ axiosInstance.interceptors.response.use(
 
         const newTokens = refreshResponse.data;
         setTokens(newTokens);
-        console.log('Token refreshed successfully.');
 
         // Update the Authorization header for the original request
         if (originalRequest.headers) {

@@ -128,7 +128,6 @@ export const getClients = async (
  * @throws Throws an error if the API call fails.
  */
 export const addClient = async (clientData: NewClientData): Promise<Client> => {
-  console.log("Adding client with data:", clientData);
     try {
         // Ensure data matches the exact request structure
         // Remove any fields from clientData that are not in NewClientData definition if necessary
@@ -164,8 +163,6 @@ export const addClient = async (clientData: NewClientData): Promise<Client> => {
  */
 export const getClientById = async (id: string): Promise<Client> => {
   try {
-    console.log(`Fetching client with ID: ${id}`);
-
     // Pass client-id as a query parameter since the API requires it
     const response = await axiosInstance.get<Client>(`/clients/${id}`);
 

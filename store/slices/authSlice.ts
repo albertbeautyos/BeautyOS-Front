@@ -83,18 +83,14 @@ export const fetchCurrentUserThunk = createAsyncThunk<UserInfo>(
     try {
       const token = LocalStorageManager.get(ACCESS_TOKEN) || SessionStorageManager.get(ACCESS_TOKEN);
       if (!token) {
-         console.log('fetchCurrentUserThunk: No token found.')
          return rejectWithValue('No token found, cannot fetch user.');
       }
-      console.log('fetchCurrentUserThunk: Token found, attempting to fetch user...')
       const userData = await getCurrentUser();
-       console.log('fetchCurrentUserThunk: User data fetched successfully.', userData)
       return userData;
     } catch (error) {
        console.error('fetchCurrentUserThunk: Error fetching user:', error)
       const message = error instanceof Error ? error.message : 'Failed to fetch current user';
       if (message.includes('(401)')) {
-          console.log('fetchCurrentUserThunk: Received 401, clearing tokens.')
           LocalStorageManager.remove(ACCESS_TOKEN);
           LocalStorageManager.remove(REFRESH_TOKEN);
           SessionStorageManager.remove(ACCESS_TOKEN);

@@ -89,7 +89,6 @@ export const verifyOtpAndLogin = async (loginAttemptId: string, otp: string): Pr
  * Clears authentication tokens from both local and session storage.
  */
 export const logout = (): void => {
-    console.log("Executing logout service: Clearing tokens...");
     LocalStorageManager.remove(ACCESS_TOKEN);
     LocalStorageManager.remove(REFRESH_TOKEN);
     SessionStorageManager.remove(ACCESS_TOKEN);

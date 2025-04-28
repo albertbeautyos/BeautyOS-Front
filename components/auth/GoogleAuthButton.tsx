@@ -28,7 +28,6 @@ export default function GoogleAuthButton() {
       sessionStorage.setItem('userEmail', simulatedGoogleEmail);
 
       // In a real app, send the verification code to the user's email
-      console.log(`Verification code: ${verificationCode} would be sent to ${simulatedGoogleEmail}`);
 
       // Create a fake auth cookie for demonstration purposes
       // In reality, this would happen server-side after verification

@@ -186,7 +186,6 @@ export default function DashboardUsersPage() { // Renamed component
   // --- Delete Confirmation Handler ---
   const confirmDelete = useCallback(async () => {
     if (!userToDelete) return;
-    console.log("Confirming delete for user:", userToDelete.id); // Updated log text
     try {
       await deleteUser(userToDelete.id); // Use deleteUser
       toast.success("User Deleted", { description: `${userToDelete.firstName} ${userToDelete.lastName} has been deleted.` }); // Updated text

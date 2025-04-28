@@ -168,8 +168,6 @@ export const addUser = async (userData: NewUserData): Promise<User> => {
  */
 export const getUserById = async (id: string): Promise<User> => {
   try {
-    console.log(`Fetching user with ID: ${id}`);
-
     // Pass user-id as a query parameter since the API requires it
     const response = await axiosInstance.get<User>(`/users/${id}`);
 

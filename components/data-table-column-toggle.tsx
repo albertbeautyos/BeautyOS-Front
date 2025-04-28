@@ -82,7 +82,6 @@ export function DataTableColumnToggle<TData>({
     // Check if columnVisibility is initialized before saving
     if (table.getState().columnVisibility) {
         const columnVisibility = table.getState().columnVisibility;
-        console.log("columnVisibility", columnVisibility);
         try {
             LocalStorageManager.set(localStorageKey, JSON.stringify(columnVisibility));
         } catch (error) {
