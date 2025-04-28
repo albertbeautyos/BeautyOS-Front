@@ -51,8 +51,7 @@ const mapUserToFormData = (user: User | null): Partial<NewUserData> & { id?: str
                     coordinates: user.address.location?.coordinates || [0, 0]
                 }
             } : undefined,
-            role: Array.isArray(user.role) ? user.role : ["PROFESSIONAL"],
-            salonId: user.salonId || "salon_1",
+            salonId: user.salonId ,
         };
     } catch (error) {
         console.error("Error mapping user data:", error);
@@ -61,10 +60,9 @@ const mapUserToFormData = (user: User | null): Partial<NewUserData> & { id?: str
             lastName: user.lastName || "",
             phone: user.phone || "",
             email: user.email || "",
-            role: ["PROFESSIONAL"],
             gender: user.gender || "Male",
             profileImage: user.profileImage || "",
-            salonId: "salon_1",
+            salonId: user.salonId,
         };
     }
 };

@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { addUser, NewUserData, User, updateUser } from '@/services/users';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // For conditional classnames
+import { useAppSelector } from '@/store/hooks';
+import { selectSalonId } from '@/store/slices/authSlice';
 
 // --- Updated Zod Schema --- Removing nested defaults
 const locationSchema = z.object({
@@ -144,6 +146,8 @@ export function AddUserForm({
     className,
     submitButtonLabel = initialData ? "Save Changes" : "Add User"
 }: AddUserFormProps) {
+  const salonId=useAppSelector(selectSalonId)
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormData>({
@@ -169,8 +173,7 @@ export function AddUserForm({
           coordinates: initialData?.address?.location?.coordinates ?? [0, 0] // Provide default
         }
       },
-      role: initialData?.role ?? ["PROFESSIONAL"],
-      salonId: initialData?.salonId ?? "salon_1" // Provide default salonId
+      salonId: initialData?.salonId  || salonId
     }
   });
 
@@ -215,8 +218,7 @@ export function AddUserForm({
                     coordinates: initialData.address?.location?.coordinates ?? [0, 0] // Reset with default
                 }
             },
-            role: initialData.role ?? ["PROFESSIONAL"],
-            salonId: initialData.salonId ?? "salon_1" // Reset salonId
+            salonId: initialData.salonId // Reset salonId
           });
       }
   }, [initialData, form.reset]);
@@ -235,12 +237,11 @@ export function AddUserForm({
         // Only include email if it's not an empty string
         email: values.email && values.email.trim() !== '' ? values.email : undefined,
         gender: values.gender ?? "Male",
-        role: values.role ?? ["PROFESSIONAL"],
         profileImage: values.profileImage,
         pronouns: values.pronouns,
         birthday: values.birthday ?? undefined,
         // Add salonId with a default value
-        salonId: values.salonId ?? "salon_1", // Use form value with fallback
+        salonId: values.salonId , // Use form value with fallback
       };
 
       // Only add address if it's not empty

@@ -70,7 +70,7 @@ export interface NewUserData {
   pronouns?: string;
   birthday?: Date | string;
   address?: AddressData;
-  role?: string[];
+  roles?: string[];
   salonId?: string;
   // Keeping some optional fields that might be useful
   referredBy?: string;
@@ -89,6 +89,7 @@ export interface NewUserData {
  * @throws Throws an error if the API call fails.
  */
 export const getUsers = async (
+  selectedSalonId:string,
   searchQuery?: string,
   skip?: number,
   top: number = 10
@@ -102,7 +103,7 @@ export const getUsers = async (
 }> => {
   try {
     // Construct URL with query parameters
-    let url = 'users?';
+    let url = 'users?salonId=' + selectedSalonId + '& ';
 
     // Add pagination parameters
     url += `top=${top}`;
@@ -145,7 +146,7 @@ export const addUser = async (userData: NewUserData): Promise<User> => {
             // Ensure birthday is ISO string if it's a Date object
             birthday: userData.birthday instanceof Date ? userData.birthday.toISOString() : userData.birthday,
             // Set default role if not provided
-            role: userData.role || ["USER"],
+            roles: userData.roles || ["PROFESSIONAL"],
             // Ensure address location has the correct structure
 
         };

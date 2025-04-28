@@ -24,11 +24,17 @@ import {
   type PaginationState, // Import PaginationState type
   // Add other necessary imports if needed later (e.g., sorting, filtering)
 } from '@tanstack/react-table';
+import { useAppSelector } from '@/store/hooks';
+import { selectSalonId } from '@/store/slices/authSlice';
 
 type SheetMode = 'add' | 'view' | 'edit' | null;
 
 // --- Main Page Component (Refactored for Users) ---
-export default function DashboardUsersPage() { // Renamed component
+export default function UsersPage() {
+
+  const selectedSalonId=useAppSelector(selectSalonId) || ''
+
+
   const [userData, setUserData] = useState<User[]>([]); // State for User data
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
@@ -145,12 +151,12 @@ export default function DashboardUsersPage() { // Renamed component
   // --- END WORKAROUND ---
 
   // --- Data Loading ---
-  const loadData = useCallback(async (search?: string, page: number = pageIndex, size: number = pageSize) => {
+  const loadData = useCallback(async (selectedSalonId: string, search?: string, page: number = pageIndex, size: number = pageSize) => {
     setIsLoading(true);
     setError(null);
     try {
       const skip = page * size;
-      const response = await getUsers(search, skip, size); // Use getUsers
+      const response = await getUsers(selectedSalonId,search, skip, size); // Use getUsers
       setUserData(response.records); // Set User data
       setTotalRecords(response.metadata.totalRecords);
     } catch (err) {
@@ -159,12 +165,12 @@ export default function DashboardUsersPage() { // Renamed component
     } finally {
       setIsLoading(false);
     }
-  }, [pageIndex, pageSize]);
+  }, [pageIndex, pageSize,selectedSalonId]);
 
   // Load data when pagination or search term changes
   useEffect(() => {
-    loadData(debouncedSearchTerm, pageIndex, pageSize);
-  }, [loadData, debouncedSearchTerm, pageIndex, pageSize]);
+    loadData(selectedSalonId,debouncedSearchTerm, pageIndex, pageSize);
+  }, [ debouncedSearchTerm, pageIndex, pageSize,selectedSalonId]);
 
   // --- Sheet Handlers ---
   const handleChangeSheetMode = useCallback((mode: SheetMode, user: User | null = selectedUser) => { // Parameter is User
@@ -189,7 +195,7 @@ export default function DashboardUsersPage() { // Renamed component
     try {
       await deleteUser(userToDelete.id); // Use deleteUser
       toast.success("User Deleted", { description: `${userToDelete.firstName} ${userToDelete.lastName} has been deleted.` }); // Updated text
-      loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
+      loadData(selectedSalonId,debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
       handleCloseSheet();
     } catch (error) {
       console.error("Failed to delete user:", error); // Updated text
@@ -216,15 +222,15 @@ export default function DashboardUsersPage() { // Renamed component
     if ('id' in newOrUpdatedUser) {
       if (sheetMode === 'edit') {
         handleChangeSheetMode('view', newOrUpdatedUser as User); // Pass User
-        loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
+        loadData(selectedSalonId,debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
       } else if (sheetMode === 'add') {
-        loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
+        loadData(selectedSalonId,debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
         handleCloseSheet();
       }
     } else {
         console.error("handleAddUserSuccess called with unexpected data format:", newOrUpdatedUser); // Updated log
         toast.error("An unexpected error occurred during the operation.");
-        loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
+        loadData(selectedSalonId,debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
     }
   }, [
     sheetMode,
