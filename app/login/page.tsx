@@ -9,7 +9,6 @@ import beautyos from '@/public/assets/beautyos.png'
 import { LoginForm } from '@/components/login-form'
 
 export default function LoginPage() {
-  const router = useRouter()
 
 
 

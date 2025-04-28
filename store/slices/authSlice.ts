@@ -4,7 +4,7 @@ import { getCurrentUser, UserData as FetchedUserData } from '@/services/getProfi
 import { LocalStorageManager } from "@/helpers/localStorageManager";
 import { SessionStorageManager } from "@/helpers/sessionStorageManager";
 import { RootState } from '../store'; // Import RootState type from store
-import { ACCESS_TOKEN, REFRESH_TOKEN } from '@/constants';
+import { ACCESS_TOKEN, REFRESH_TOKEN, SELECTED_SALON_ID } from '@/constants';
 
 // User info type directly uses the one from the service
 type UserInfo = FetchedUserData;
@@ -20,7 +20,7 @@ interface VerifyOtpPayload {
 interface AuthState {
   loading: 'idle' | 'pending';
   error: string | null;
-  userInfo: UserInfo | null; // Use the type alias
+  userInfo: UserInfo & {selectedSalonId?: string | null} | null; // Use the type alias
   loginAttemptId: string | null; // Store the ID between steps
   isAuthenticated: boolean;
   initialCheckComplete: boolean; // Ensure this is not optional
@@ -130,6 +130,12 @@ const authSlice = createSlice({
         state.initialCheckComplete = true;
         state.loading = 'idle';
     },
+    updateSelectedSalonId(state, action: PayloadAction<string>) {
+      if (state.userInfo) {
+        state.userInfo.selectedSalonId = action.payload;
+        // Also store in local storage for persistence
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -211,7 +217,9 @@ const authSlice = createSlice({
             address: action.payload.address,
             role: action.payload.role,
             status: action.payload.status,
-            salons: action.payload.salons
+            salons: action.payload.salons,
+            // Restore selected salon from local storage if available
+            selectedSalonId: LocalStorageManager.get(SELECTED_SALON_ID) || null
         };// Payload is already UserInfo
           state.error = null;
           state.initialCheckComplete = true;
@@ -230,17 +238,21 @@ const authSlice = createSlice({
            state.loading = 'pending';
        })
       .addCase(logoutThunk.fulfilled, (state) => {
+        // Remove selected salon ID from storage on logout
+        LocalStorageManager.remove(SELECTED_SALON_ID);
         return initialState;
       })
       .addCase(logoutThunk.rejected, (state, action) => {
          console.warn("Logout rejected action payload:", action.payload)
+         // Remove selected salon ID from storage on logout even if it fails
+         LocalStorageManager.remove(SELECTED_SALON_ID);
          return { ...initialState, error: action.payload as string || 'Logout failed' };
       });
   },
 });
 
 // Export actions and reducer
-export const { clearAuthError, setInitialAuthState } = authSlice.actions;
+export const { clearAuthError, setInitialAuthState, updateSelectedSalonId } = authSlice.actions;
 export default authSlice.reducer;
 
 // --- Selectors ---
@@ -249,4 +261,4 @@ export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenti
 export const selectAuthLoading = (state: RootState) => state.auth.loading;
 export const selectAuthError = (state: RootState) => state.auth.error;
 export const selectInitialCheckComplete = (state: RootState) => state.auth.initialCheckComplete;
-export const selectSalonId=(state: RootState) => state.auth.userInfo?.salons[0]?.id;
+export const selectSalonId = (state: RootState) => state.auth.userInfo?.selectedSalonId || state.auth.userInfo?.salons[0]?.id;

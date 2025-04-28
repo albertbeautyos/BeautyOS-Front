@@ -65,7 +65,6 @@ export const getCurrentUser = async (): Promise<UserData> => {
 
         if(!selectedSalonId){
             LocalStorageManager.set('selectedSalonId',response.data.salons[0].id);
-
         }
 
         return response.data;

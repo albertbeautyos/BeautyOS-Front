@@ -79,6 +79,7 @@ export interface NewClientData {
  * @throws Throws an error if the API call fails.
  */
 export const getClients = async (
+  selectedSalonId: string,
   searchQuery?: string,
   skip?: number,
   top: number = 10
@@ -92,7 +93,7 @@ export const getClients = async (
 }> => {
   try {
     // Construct URL with query parameters
-    let url = 'clients?';
+    let url = 'clients?salonId=' + selectedSalonId + '&';
 
     // Add pagination parameters
     url += `top=${top}`;

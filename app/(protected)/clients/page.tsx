@@ -24,11 +24,15 @@ import {
   type PaginationState, // Import PaginationState type
   // Add other necessary imports if needed later (e.g., sorting, filtering)
 } from '@tanstack/react-table';
+import { useAppSelector } from '@/store/hooks';
+import { selectSalonId } from '@/store/slices/authSlice';
 
 type SheetMode = 'add' | 'view' | 'edit' | null;
 
 // --- Main Page Component (Refactored) ---
-export default function DashboardClientsPage() {
+export default function ClientsPage() {
+
+  const selectedSalonId=useAppSelector(selectSalonId)|| ''
   const [clientData, setClientData] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
@@ -153,12 +157,12 @@ export default function DashboardClientsPage() {
   // --- END WORKAROUND ---
 
   // --- Data Loading ---
-  const loadData = useCallback(async (search?: string, page: number = pageIndex, size: number = pageSize) => {
+  const loadData = useCallback(async (selectedSalonId: string, search?: string, page: number = pageIndex, size: number = pageSize) => {
     setIsLoading(true);
     setError(null);
     try {
       const skip = page * size;
-      const response = await getClients(search, skip, size);
+      const response = await getClients(selectedSalonId,search, skip, size);
       setClientData(response.records);
       setTotalRecords(response.metadata.totalRecords);
     } catch (err) {
@@ -167,12 +171,12 @@ export default function DashboardClientsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [pageIndex, pageSize]);
+  }, [pageIndex, pageSize,selectedSalonId]);
 
   // Load data when pagination or search term changes
   useEffect(() => {
-    loadData(debouncedSearchTerm, pageIndex, pageSize);
-  }, [loadData, debouncedSearchTerm, pageIndex, pageSize]);
+    loadData(selectedSalonId,debouncedSearchTerm, pageIndex, pageSize);
+  }, [selectedSalonId, debouncedSearchTerm, pageIndex, pageSize]);
 
   // --- Sheet Handlers (Only definitions not needed before table) ---
   const handleChangeSheetMode = useCallback((mode: SheetMode, client: Client | null = selectedClient) => {
@@ -192,7 +196,7 @@ export default function DashboardClientsPage() {
       await deleteClient(clientToDelete.id);
       toast.success("Client Deleted", { description: `${clientToDelete.firstName} ${clientToDelete.lastName} has been deleted.` });
       // Reload data using current table state
-      loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
+      loadData(selectedSalonId,debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
       handleCloseSheet(); // Close the sheet after successful deletion
     } catch (error) {
       console.error("Failed to delete client:", error);
@@ -223,10 +227,10 @@ export default function DashboardClientsPage() {
       if (sheetMode === 'edit') {
         handleChangeSheetMode('view', newOrUpdatedClient as Client);
         // Reload data using current table state
-        loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
+        loadData(selectedSalonId,debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
       } else if (sheetMode === 'add') {
         // If we were adding, refresh the list and close the sheet
-        loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
+        loadData(selectedSalonId,debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
         handleCloseSheet();
       }
     } else {
@@ -234,7 +238,7 @@ export default function DashboardClientsPage() {
         console.error("handleAddClientSuccess called with unexpected data format:", newOrUpdatedClient);
         toast.error("An unexpected error occurred during the operation.");
         // Optionally refresh data anyway
-        loadData(debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
+        loadData(selectedSalonId,debouncedSearchTerm, table.getState().pagination.pageIndex, table.getState().pagination.pageSize);
     }
   }, [
     sheetMode,
