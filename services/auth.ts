@@ -1,4 +1,5 @@
 import axiosInstance from '@/api/axiosInstance';
+import { ACCESS_TOKEN, REFRESH_TOKEN } from '@/constants';
 // Import storage managers
 import { LocalStorageManager } from "@/helpers/localStorageManager";
 import { SessionStorageManager } from "@/helpers/sessionStorageManager"; // Assuming this exists
@@ -89,10 +90,10 @@ export const verifyOtpAndLogin = async (loginAttemptId: string, otp: string): Pr
  */
 export const logout = (): void => {
     console.log("Executing logout service: Clearing tokens...");
-    LocalStorageManager.remove('accessToken');
-    LocalStorageManager.remove('refreshToken');
-    SessionStorageManager.remove('accessToken');
-    SessionStorageManager.remove('refreshToken');
+    LocalStorageManager.remove(ACCESS_TOKEN);
+    LocalStorageManager.remove(REFRESH_TOKEN);
+    SessionStorageManager.remove(ACCESS_TOKEN);
+    SessionStorageManager.remove(REFRESH_TOKEN);
     // Note: The axios interceptor also calls clearTokens on refresh failure,
     // so this provides explicit logout cleanup.
 };

@@ -12,6 +12,7 @@ import { sendLoginCode, verifyOtpAndLogin } from "@/services/auth";
 import { useAppDispatch } from "@/store/hooks";
 import { fetchCurrentUserThunk, verifyOtpThunk } from "@/store/slices/authSlice";
 import { useRouter } from "next/navigation";
+import { PRIVATE_ROUTES } from "@/constants";
 
 interface ApiErrorResponse {
    message: string;
@@ -112,7 +113,7 @@ export function LoginForm({
     try {
     await dispatch(verifyOtpThunk({ loginAttemptId: currentLoginId, otp: verificationCode, rememberMe }))
     await  dispatch(fetchCurrentUserThunk())
-     router.push('/dashboard')
+     router.push(PRIVATE_ROUTES.DASHBOARD)
     } catch (error) {
       setErrors({ api: getErrorMessage(error) });
     } finally {

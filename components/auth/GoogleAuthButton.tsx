@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { PRIVATE_ROUTES } from '@/constants';
 
 export default function GoogleAuthButton() {
   const [isLoading, setIsLoading] = useState(false);
@@ -37,7 +38,7 @@ export default function GoogleAuthButton() {
       sessionStorage.setItem('isAuthenticated', 'true');
 
       // Redirect to dashboard
-      router.push('/dashboard');
+      router.push(PRIVATE_ROUTES.DASHBOARD);
     } catch (error) {
       console.error('Google sign-in error:', error);
     } finally {

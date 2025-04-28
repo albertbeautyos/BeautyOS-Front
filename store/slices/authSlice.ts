@@ -4,6 +4,7 @@ import { getCurrentUser, UserData as FetchedUserData } from '@/services/getProfi
 import { LocalStorageManager } from "@/helpers/localStorageManager";
 import { SessionStorageManager } from "@/helpers/sessionStorageManager";
 import { RootState } from '../store'; // Import RootState type from store
+import { ACCESS_TOKEN, REFRESH_TOKEN } from '@/constants';
 
 // User info type directly uses the one from the service
 type UserInfo = FetchedUserData;
@@ -60,7 +61,7 @@ export const verifyOtpThunk = createAsyncThunk<LoginResponse, VerifyOtpPayload>(
 
       // Determine storage based on rememberMe
       const storage = rememberMe ? LocalStorageManager : SessionStorageManager;
-      storage.set('accessToken', response.accessToken);
+      storage.set(ACCESS_TOKEN, response.accessToken);
       // Safely handle refreshToken - check if it exists on the response object
       if (response.refreshToken) {
           storage.set('refreshToken', response.refreshToken);
@@ -80,7 +81,7 @@ export const fetchCurrentUserThunk = createAsyncThunk<UserInfo>(
   'auth/fetchCurrentUser',
   async (_, { rejectWithValue }) => {
     try {
-      const token = LocalStorageManager.get('accessToken') || SessionStorageManager.get('accessToken');
+      const token = LocalStorageManager.get(ACCESS_TOKEN) || SessionStorageManager.get(ACCESS_TOKEN);
       if (!token) {
          console.log('fetchCurrentUserThunk: No token found.')
          return rejectWithValue('No token found, cannot fetch user.');
@@ -94,10 +95,10 @@ export const fetchCurrentUserThunk = createAsyncThunk<UserInfo>(
       const message = error instanceof Error ? error.message : 'Failed to fetch current user';
       if (message.includes('(401)')) {
           console.log('fetchCurrentUserThunk: Received 401, clearing tokens.')
-          LocalStorageManager.remove('accessToken');
-          LocalStorageManager.remove('refreshToken');
-          SessionStorageManager.remove('accessToken');
-          SessionStorageManager.remove('refreshToken');
+          LocalStorageManager.remove(ACCESS_TOKEN);
+          LocalStorageManager.remove(REFRESH_TOKEN);
+          SessionStorageManager.remove(ACCESS_TOKEN);
+          SessionStorageManager.remove(REFRESH_TOKEN);
       }
       return rejectWithValue(message);
     }
@@ -197,7 +198,25 @@ const authSlice = createSlice({
       .addCase(fetchCurrentUserThunk.fulfilled, (state, action: PayloadAction<UserInfo>) => {
           state.loading = 'idle';
           state.isAuthenticated = true;
-          state.userInfo = action.payload; // Payload is already UserInfo
+           state.userInfo = {
+            id: action.payload.id,
+            firstName: action.payload.firstName,
+            lastName: action.payload.lastName,
+            username: action.payload.username,
+            profileImage: action.payload.profileImage,
+            email: action.payload.email,
+            phone: action.payload.phone,
+            gender: action.payload.gender,
+            pronouns: action.payload.pronouns,
+            level: action.payload.level,
+            services: action.payload.services,
+            rating: action.payload.rating,
+            birthday: action.payload.birthday,
+            address: action.payload.address,
+            role: action.payload.role,
+            status: action.payload.status,
+            salons: action.payload.salons
+        };// Payload is already UserInfo
           state.error = null;
           state.initialCheckComplete = true;
       })

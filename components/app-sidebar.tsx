@@ -23,6 +23,7 @@ import {
   buttonVariants
 } from "@/components/ui/button"
 import beautyosLogo from '@/public/assets/beautyos.png'
+import { PRIVATE_ROUTES } from "@/constants"
 
 // This is sample data.
 const data = {
@@ -51,19 +52,19 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/dashboard",
+      url: PRIVATE_ROUTES.DASHBOARD,
       icon:   PanelLeftDashed,
       isActive: true,
     },
     {
       title: "Clients",
-      url: "/clients",
+      url: PRIVATE_ROUTES.CLIENTS,
       icon:   Users,
       isActive: true,
     },
     {
       title: "Users",
-      url: "/users",
+      url: PRIVATE_ROUTES.USERS,
       icon:   Users,
       isActive: true,
     }

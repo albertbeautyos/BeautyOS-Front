@@ -20,6 +20,7 @@ import {
     selectAuthLoading,
 } from '@/store/slices/authSlice';
 import { Loader2 } from 'lucide-react'; // Example loading icon
+import { PUBLIC_ROUTES } from '@/constants';
 
 export default function ProtectedLayout({
   children,
@@ -59,7 +60,7 @@ export default function ProtectedLayout({
     // Only redirect if the check is complete, loading is idle, and user is not authenticated.
     if (initialCheckComplete && loading === 'idle' && !isAuthenticated) {
         console.log("ProtectedLayout: Redirecting to /login...");
-        router.replace('/login');
+        router.replace(PUBLIC_ROUTES.LOGIN);
     }
   }, [isAuthenticated, initialCheckComplete, loading, router]);
 

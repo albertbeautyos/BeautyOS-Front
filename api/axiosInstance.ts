@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { LocalStorageManager } from '@/helpers/localStorageManager'; // Import the specific class
 import { SessionStorageManager } from '@/helpers/sessionStorageManager';
+import { ACCESS_TOKEN, REFRESH_TOKEN } from '@/constants';
 
 // Define interfaces for token structure and refresh response
 interface Tokens {
@@ -22,25 +23,23 @@ const axiosInstance = axios.create({
 
 // --- Token Management --- Using LocalStorageManager class
 
-const ACCESS_TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
 
 const getAccessToken = (): string | null => {
-  return LocalStorageManager.get(ACCESS_TOKEN_KEY) || SessionStorageManager.get(ACCESS_TOKEN_KEY);
+  return LocalStorageManager.get(ACCESS_TOKEN) || SessionStorageManager.get(ACCESS_TOKEN);
 };
 
 const getRefreshToken = (): string | null => {
-  return LocalStorageManager.get(REFRESH_TOKEN_KEY) || SessionStorageManager.get(REFRESH_TOKEN_KEY);
+  return LocalStorageManager.get(REFRESH_TOKEN) || SessionStorageManager.get(REFRESH_TOKEN);
 };
 
 const setTokens = (tokens: Tokens): void => {
-  LocalStorageManager.set(ACCESS_TOKEN_KEY, tokens.accessToken);
-  LocalStorageManager.set(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  LocalStorageManager.set(ACCESS_TOKEN, tokens.accessToken);
+  LocalStorageManager.set(REFRESH_TOKEN, tokens.refreshToken);
 };
 
 const clearTokens = (): void => {
-  LocalStorageManager.remove(ACCESS_TOKEN_KEY);
-  LocalStorageManager.remove(REFRESH_TOKEN_KEY);
+  LocalStorageManager.remove(ACCESS_TOKEN);
+  LocalStorageManager.remove(REFRESH_TOKEN);
   // Potentially trigger logout state update here
   // if (typeof window !== 'undefined') window.location.href = '/login';
 };
