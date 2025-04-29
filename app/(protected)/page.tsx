@@ -17,7 +17,6 @@ export default function ProtectedBasePage() {
   const selectedSalonId=LocalStorageManager.get(SELECTED_SALON_ID)
 
   if(selectedSalonId){
-    alert(`hhh`)
     dispatch(updateSelectedSalonId(selectedSalonId))
   }
 

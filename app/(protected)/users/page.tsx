@@ -9,7 +9,7 @@ import { DataTableContent } from './data-table-content';
 import { columns } from "./components/columns"; // Ensure this uses User columns
 import { User, getUsers, NewUserData, getUserById, updateUser, deleteUser } from '@/services/users'; // USE USER SERVICES
 import { Toaster } from "@/components/ui/sonner";
-import { PlusCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PlusCircle, Loader2, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
 import { toast } from "sonner";
 // Import the extracted components
 import { UserSheetContent } from './components/UserSheetContent'; // Renamed for clarity, ensure file exists
@@ -26,6 +26,7 @@ import {
 } from '@tanstack/react-table';
 import { useAppSelector } from '@/store/hooks';
 import { selectSalonId } from '@/store/slices/authSlice';
+import { InviteUserSheet } from './components/InviteUserSheet';
 
 type SheetMode = 'add' | 'view' | 'edit' | null;
 
@@ -95,6 +96,39 @@ export default function UsersPage() {
     setIsDeleteDialogOpen(true);
   }, []);
 
+  // --- Data Loading ---
+  const loadData = useCallback(async (selectedSalonId: string, search?: string, page: number = pageIndex, size: number = pageSize) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const skip = page * size;
+      const response = await getUsers(selectedSalonId,search, skip, size); // Use getUsers
+      setUserData(response.records); // Set User data
+      setTotalRecords(response.metadata.totalRecords);
+    } catch (err) {
+      console.error("Failed to load user data:", err); // Updated text
+      setError(err instanceof Error ? err.message : "Failed to load users"); // Updated text
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pageIndex, pageSize,selectedSalonId]);
+
+  // Now add the invite sheet state and handlers AFTER loadData is defined
+  const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
+
+  const handleOpenInviteSheet = useCallback(() => {
+    setIsInviteSheetOpen(true);
+  }, []);
+
+  const handleCloseInviteSheet = useCallback(() => {
+    setIsInviteSheetOpen(false);
+  }, []);
+
+  const handleInviteSuccess = useCallback(() => {
+    // Optionally refresh the user list
+    loadData(selectedSalonId, debouncedSearchTerm, pageIndex, pageSize);
+  }, [loadData, selectedSalonId, debouncedSearchTerm, pageIndex, pageSize]);
+
   // --- TanStack Table Instance ---
   const table = useReactTable<User>({ // Generic is User
     data: userData ?? [], // Use User data
@@ -149,23 +183,6 @@ export default function UsersPage() {
     }
   }, [isSheetOpen, isDeleteDialogOpen]);
   // --- END WORKAROUND ---
-
-  // --- Data Loading ---
-  const loadData = useCallback(async (selectedSalonId: string, search?: string, page: number = pageIndex, size: number = pageSize) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const skip = page * size;
-      const response = await getUsers(selectedSalonId,search, skip, size); // Use getUsers
-      setUserData(response.records); // Set User data
-      setTotalRecords(response.metadata.totalRecords);
-    } catch (err) {
-      console.error("Failed to load user data:", err); // Updated text
-      setError(err instanceof Error ? err.message : "Failed to load users"); // Updated text
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pageIndex, pageSize,selectedSalonId]);
 
   // Load data when pagination or search term changes
   useEffect(() => {
@@ -268,9 +285,23 @@ export default function UsersPage() {
             </div>
           )}
         </div>
-        <Button onClick={() => handleOpenSheet('add')} className="w-full sm:w-auto">
-          <PlusCircle className="mr-2 h-4 w-4" /> Add User
-        </Button>
+        <div className="flex gap-2">
+          {/* <Button
+            onClick={() => handleOpenSheet('add')}
+            className="flex-none"
+          >
+            <PlusCircle className="h-5 w-5 mr-2" />
+            Add User
+          </Button> */}
+          <Button
+            onClick={handleOpenInviteSheet}
+            variant="outline"
+            className="flex-none"
+          >
+            <UserPlus className="h-5 w-5 mr-2" />
+            Invite
+          </Button>
+        </div>
       </div>
 
       {/* Error Display */}
@@ -322,6 +353,13 @@ export default function UsersPage() {
         onCancel={cancelDelete}
         confirmButtonText="Delete"
         confirmButtonVariant="destructive"
+      />
+
+      {/* Add the InviteUserSheet */}
+      <InviteUserSheet
+        isOpen={isInviteSheetOpen}
+        onClose={handleCloseInviteSheet}
+        onSuccess={handleInviteSuccess}
       />
 
       {/* Toaster */}
