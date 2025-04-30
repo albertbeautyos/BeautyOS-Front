@@ -3,7 +3,7 @@
 import axiosInstance from "@/api/axiosInstance";
 
 // Define interface for address
-interface Address {
+export interface Address {
   street: string;
   city: string;
   state: string;
@@ -16,7 +16,7 @@ interface Address {
 }
 
 // Define interface for working hours
-interface WorkingHours {
+export interface WorkingHours {
   day: string;
   isWorking: boolean;
   startTime: string;
@@ -24,7 +24,7 @@ interface WorkingHours {
 }
 
 // Define interface for salon creation request
-interface CreateSalonRequest {
+export interface CreateSalonRequest {
   name: string;
   image?: string;
   description?: string;
@@ -57,7 +57,7 @@ interface UpdateSalonRequest {
 }
 
 // Define interface for salon response
-interface SalonResponse {
+export interface SalonResponse {
   id: string;
   name: string;
   image?: string;
@@ -78,33 +78,27 @@ interface SalonResponse {
 }
 
 // Define interface for pagination metadata
-interface PaginationMetadata {
+export interface PaginationMetadata {
   totalRecords: number;
   pageSize: number;
   page: number;
 }
 
 // Define interface for paginated salon response
-interface PaginatedSalonResponse {
+export interface PaginatedSalonResponse {
   metadata: PaginationMetadata;
-  records: Array<{
-    id: string;
-    name: string;
-    image?: string;
-    description?: string;
-    phone?: string;
-  }>;
+  records: SalonResponse[]
 }
 
 // Define interface for get salons query parameters
-interface GetSalonsQueryParams {
+export interface GetSalonsQueryParams {
   page?: number;
   pageSize?: number;
   search?: string;
 }
 
 // Define interface for invitation payload
-interface InviteUserPayload {
+export interface InviteUserPayload {
   username: string;
   role: string;
 }

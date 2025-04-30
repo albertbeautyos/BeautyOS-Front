@@ -18,6 +18,12 @@ interface Address {
     location: Location;
 }
 
+export interface UserSalon {
+    id: string;
+    isSingle: boolean;
+    name: string;
+    role: string[];
+    status: string;}
 export interface UserData {
     status: string; // e.g., "CREATED"
     role: string[]; // Array of roles, e.g., ["PROFESSIONAL"]
@@ -35,7 +41,7 @@ export interface UserData {
     lastName: string;
     firstName: string;
     id: string;
-    salons:{id:string,isSingle:boolean}[]
+    salons:UserSalon[]
 }
 
 // Constants for token keys (matching axiosInstance.ts)

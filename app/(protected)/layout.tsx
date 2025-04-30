@@ -21,6 +21,7 @@ import {
 } from '@/store/slices/authSlice';
 import { Loader2 } from 'lucide-react'; // Example loading icon
 import { PUBLIC_ROUTES } from '@/constants';
+import { SalonSelector } from '@/components/SalonSelector';
 
 export default function ProtectedLayout({
   children,
@@ -92,6 +93,7 @@ export default function ProtectedLayout({
             <h1 className="text-lg font-semibold">{pageTitle}</h1>
           </div>
           <div className="ml-auto mr-4 flex items-center gap-2">
+            <SalonSelector />
             <ThemeToggle />
             {/* Add User Profile/Logout Button Here */}
           </div>

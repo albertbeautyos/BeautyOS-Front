@@ -3,6 +3,7 @@ import { ACCESS_TOKEN, REFRESH_TOKEN } from '@/constants';
 // Import storage managers
 import { LocalStorageManager } from "@/helpers/localStorageManager";
 import { SessionStorageManager } from "@/helpers/sessionStorageManager"; // Assuming this exists
+import { UserSalon } from './getProfile';
 
 // Define expected response structure for login/verify
 // Export this interface!
@@ -35,7 +36,7 @@ export interface LoginResponse {
     status: string;
     accessToken: string;
     refreshToken?: string;
-    salons:{id:string,isSingle:boolean}[]
+    salons:UserSalon[]
     // Make refreshToken optional if not always returned
 }
 

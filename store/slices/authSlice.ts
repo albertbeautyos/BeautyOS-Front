@@ -262,3 +262,4 @@ export const selectAuthLoading = (state: RootState) => state.auth.loading;
 export const selectAuthError = (state: RootState) => state.auth.error;
 export const selectInitialCheckComplete = (state: RootState) => state.auth.initialCheckComplete;
 export const selectSalonId = (state: RootState) => state.auth.userInfo?.selectedSalonId || state.auth.userInfo?.salons[0]?.id;
+export const selectSalons = (state: RootState) => state.auth.userInfo?.salons;
