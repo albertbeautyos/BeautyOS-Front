@@ -22,7 +22,7 @@ export interface UserSalon {
     id: string;
     isSingle: boolean;
     name: string;
-    role: string[];
+    roles: string[];
     status: string;}
 export interface UserData {
     status: string; // e.g., "CREATED"
@@ -69,9 +69,7 @@ export const getCurrentUser = async (): Promise<UserData> => {
         const response = await axiosInstance.get<UserData>('/users/me');
         const selectedSalonId =LocalStorageManager.get('SELECTED_SALON_ID');
 
-        if(!selectedSalonId){
-            LocalStorageManager.set('selectedSalonId',response.data.salons[0].id);
-        }
+
 
         return response.data;
     } catch (error: unknown) {

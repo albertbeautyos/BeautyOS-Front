@@ -144,7 +144,7 @@ export function AddClientForm({
     submitButtonLabel = initialData ? "Save Changes" : "Add Client" // Default label based on mode
 }: AddClientFormProps) {
 
-  const salonId=useAppSelector(selectSalonId)
+  const salonId=useAppSelector(selectSalonId) || ""
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Function to safely create a Date from initial data
   const getInitialDate = (birthday: string | Date | undefined | null): Date | undefined => {

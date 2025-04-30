@@ -146,7 +146,7 @@ export function AddUserForm({
     className,
     submitButtonLabel = initialData ? "Save Changes" : "Add User"
 }: AddUserFormProps) {
-  const salonId=useAppSelector(selectSalonId)
+  const salonId=useAppSelector(selectSalonId) || ""
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 

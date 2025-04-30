@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { sendLoginCode, verifyOtpAndLogin, logout as logoutService, LoginResponse } from '@/services/auth'; // Import LoginResponse type
-import { getCurrentUser, UserData as FetchedUserData } from '@/services/getProfile'; // Import user service and type
+import { getCurrentUser, UserData as FetchedUserData, UserSalon } from '@/services/getProfile'; // Import user service and type
 import { LocalStorageManager } from "@/helpers/localStorageManager";
 import { SessionStorageManager } from "@/helpers/sessionStorageManager";
 import { RootState } from '../store'; // Import RootState type from store
@@ -136,6 +136,11 @@ const authSlice = createSlice({
         // Also store in local storage for persistence
       }
     },
+    updateSalons(state, action: PayloadAction<UserSalon>) {
+      if (state.userInfo) {
+        state.userInfo.salons =[...state.userInfo.salons, action.payload];
+      }
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -239,7 +244,6 @@ const authSlice = createSlice({
        })
       .addCase(logoutThunk.fulfilled, (state) => {
         // Remove selected salon ID from storage on logout
-        LocalStorageManager.remove(SELECTED_SALON_ID);
         return initialState;
       })
       .addCase(logoutThunk.rejected, (state, action) => {
@@ -252,7 +256,7 @@ const authSlice = createSlice({
 });
 
 // Export actions and reducer
-export const { clearAuthError, setInitialAuthState, updateSelectedSalonId } = authSlice.actions;
+export const { clearAuthError, setInitialAuthState, updateSelectedSalonId,updateSalons } = authSlice.actions;
 export default authSlice.reducer;
 
 // --- Selectors ---
@@ -261,5 +265,5 @@ export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenti
 export const selectAuthLoading = (state: RootState) => state.auth.loading;
 export const selectAuthError = (state: RootState) => state.auth.error;
 export const selectInitialCheckComplete = (state: RootState) => state.auth.initialCheckComplete;
-export const selectSalonId = (state: RootState) => state.auth.userInfo?.selectedSalonId || state.auth.userInfo?.salons[0]?.id;
+export const selectSalonId = (state: RootState) => state.auth.userInfo?.selectedSalonId ;
 export const selectSalons = (state: RootState) => state.auth.userInfo?.salons;

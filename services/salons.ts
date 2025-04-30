@@ -32,7 +32,7 @@ export interface CreateSalonRequest {
   email?: string;
   website?: string;
   beautyosUrl?: string;
-  serviceLocation?: "AT_MY_SALON";
+  serviceLocation?: string;
   address: Address;
   address2?: Address;
   workingHours?: WorkingHours[];
