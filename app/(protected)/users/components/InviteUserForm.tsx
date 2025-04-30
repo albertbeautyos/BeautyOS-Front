@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAppSelector } from '@/store/hooks';
 import { selectSalonId } from '@/store/slices/authSlice';
-import { inviteUser } from '@/services/salons';
+import { inviteUserToSalon } from '@/services/salons';
 
 // Create the form schema with contact (email/phone) and role fields
 const formSchema = z.object({
@@ -69,7 +69,7 @@ export function InviteUserForm({
     setIsSubmitting(true);
     try {
       // Call the invite user service with the appropriate parameter
-       await inviteUser(salonId, {
+       await inviteUserToSalon(salonId, {
         username: values.contact, // Use the contact as username
         role: values.role
       });
