@@ -80,7 +80,7 @@ const initialFormValues: FormValues = {
   email: "",
   website: "",
   beautyosUrl: "",
-  serviceLocation: "", // Use empty string as default
+  serviceLocation: "AT_MY_SALON", // Use empty string as default
   address: createDefaultAddress(),
   address2: undefined, // Optional object default
 };
