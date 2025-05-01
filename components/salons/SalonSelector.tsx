@@ -10,7 +10,6 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectSalonId, selectSalons, updateSelectedSalonId } from '@/store/slices/authSlice';
 import { UserSalon } from '@/services/getProfile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { CreateSalonForm } from './CreateSalonForm';
 import { SalonResponse, getSalonById, deleteSalonById } from '@/services/salons';
 import { toast } from 'sonner';
 import {
@@ -23,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { CreateSalonForm } from './CreateSalonForm';
 
 // Placeholder for the actual Address structure
 

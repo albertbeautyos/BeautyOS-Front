@@ -21,7 +21,7 @@ import {
 } from '@/store/slices/authSlice';
 import { Loader2 } from 'lucide-react'; // Example loading icon
 import { PUBLIC_ROUTES } from '@/constants';
-import { SalonSelector } from '@/components/SalonSelector';
+import { SalonSelector } from '@/components/salons/SalonSelector';
 
 export default function ProtectedLayout({
   children,
