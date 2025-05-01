@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import * as z from "zod";
@@ -15,13 +15,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { createSalon } from '@/services/salons';
+import { createSalon, updateSalon, SalonResponse, Address, UpdateSalonRequest, CreateSalonRequest } from '@/services/salons';
 import { toast } from 'sonner';
 import { useAppDispatch } from '@/store/hooks';
 import { SELECTED_SALON_ID } from '@/constants';
 import { LocalStorageManager } from '@/helpers/localStorageManager';
+
 interface CreateSalonFormProps {
   onSuccess: (response: unknown) => void;
+  initialData?: SalonResponse | null;
+  isEditing?: boolean;
 }
 
 // Location schema for both addresses
@@ -31,7 +34,7 @@ const locationSchema = z.object({
 });
 
 // Address schema for both primary and secondary addresses
-const addressSchema = z.object({
+const addressSchema: z.ZodType<Address> = z.object({
   street: z.string().min(1, { message: "Street is required" }),
   city: z.string().min(1, { message: "City is required" }),
   state: z.string().min(1, { message: "State is required" }),
@@ -62,60 +65,101 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export const CreateSalonForm = ({ onSuccess }: CreateSalonFormProps) => {
+// Helper to create default Address
+const createDefaultAddress = (): Address => ({
+  street: "", city: "", state: "", postalCode: "", country: "",
+  location: { type: "Point", coordinates: [0, 0] }
+});
+
+// Initial default values for the form
+const initialFormValues: FormValues = {
+  name: "",
+  image: "",
+  description: "",
+  phone: "",
+  email: "",
+  website: "",
+  beautyosUrl: "",
+  serviceLocation: "", // Use empty string as default
+  address: createDefaultAddress(),
+  address2: undefined, // Optional object default
+};
+
+export const CreateSalonForm = ({ onSuccess, initialData, isEditing }: CreateSalonFormProps) => {
 
   const dispatch = useAppDispatch();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showAddress2, setShowAddress2] = useState(false);
+  const [showAddress2, setShowAddress2] = useState(!!initialData?.address2);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      image: "",
-      description: "",
-      phone: "",
-      email: "",
-      website: "",
-      beautyosUrl: "",
-      serviceLocation: "AT_MY_SALON",
-      address: {
-        street: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        country: "",
-        location: {
-          type: "Point",
-          coordinates: [0, 0]
-        }
-      },
-      address2: undefined
-    }
+    defaultValues: initialFormValues, // Provide initial defaults here
   });
+
+  // Effect to reset form ONLY when initialData changes for editing
+  useEffect(() => {
+    if (isEditing && initialData) {
+      // Map SalonResponse to FormValues
+      const editValues: Partial<FormValues> = {
+        name: initialData.name || "",
+        image: initialData.image || "",
+        description: initialData.description || "",
+        phone: initialData.phone || "",
+        email: initialData.email || "",
+        website: initialData.website || "",
+        beautyosUrl: initialData.beautyosUrl || "",
+        serviceLocation: initialData.serviceLocation || "", // Use empty string
+        address: initialData.address || createDefaultAddress(),
+        address2: initialData.address2 || undefined,
+      };
+      form.reset(editValues as FormValues);
+      setShowAddress2(!!initialData.address2);
+    }
+    // No need for an else block to reset for create mode,
+    // as defaultValues in useForm handles that now.
+  }, [isEditing, initialData, form.reset]); // Keep form.reset in dependency array
 
   const onSubmit: SubmitHandler<FormValues> = async (values) => {
     setIsSubmitting(true);
-    const dataToSend = { ...values };
-    if (!showAddress2 || !values.address2?.street) {
-      delete dataToSend.address2;
+    // Prepare payload matching CreateSalonRequest or UpdateSalonRequest structure
+    // Note: The final type assertion depends on which API is called
+    const payload: Partial<CreateSalonRequest & UpdateSalonRequest> = { ...values };
+
+    if (!showAddress2) {
+      delete payload.address2;
     }
 
+    // Handle empty strings for optional fields if API expects null/undefined
+    if (payload.email === "") payload.email = undefined;
+    if (payload.website === "") payload.website = undefined;
+    // Add more similar cleanups if needed...
+
     try {
-      const response = await createSalon(dataToSend);
-     await  dispatch(updateSalons({
-        id: response.id,
-        name: response.name,
-        isSingle: response.isSingle,
-        status: response.status,
-        roles:["PROFFESIONAL"]
-      }));
-      LocalStorageManager.set(SELECTED_SALON_ID, response.id);
-      dispatch(updateSelectedSalonId(response.id));
-      toast.success("Salon created successfully");
+      let response;
+      if (isEditing && initialData?.id) {
+        // Payload for updateSalon (UpdateSalonRequest)
+        response = await updateSalon(initialData.id, payload as UpdateSalonRequest);
+        toast.success("Salon updated successfully");
+      } else {
+        // Payload for createSalon (CreateSalonRequest)
+        response = await createSalon(payload as CreateSalonRequest);
+        // Dispatch create actions for Redux store
+        dispatch(updateSalons({
+          // Construct UserSalon from SalonResponse
+          id: response.id,
+          name: response.name,
+          isSingle: response.isSingle,
+          status: response.status,
+          roles: ["PROFFESIONAL"] // Assuming default role
+        }));
+        LocalStorageManager.set(SELECTED_SALON_ID, response.id);
+        dispatch(updateSelectedSalonId(response.id));
+        toast.success("Salon created successfully");
+      }
       onSuccess(response);
     } catch (error) {
-      toast.error("Failed to create salon");
+      toast.error(isEditing ? "Failed to update salon" : "Failed to create salon");
+      console.error("Salon form error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -407,10 +451,10 @@ export const CreateSalonForm = ({ onSuccess }: CreateSalonFormProps) => {
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
+                {isEditing ? "Updating..." : "Creating..."}
               </>
             ) : (
-              "Create Salon"
+              isEditing ? "Update Salon" : "Create Salon"
             )}
           </Button>
         </div>

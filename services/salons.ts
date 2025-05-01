@@ -40,7 +40,7 @@ export interface CreateSalonRequest {
 }
 
 // Define interface for salon update request
-interface UpdateSalonRequest {
+export interface UpdateSalonRequest {
   name: string;
   image?: string;
   description?: string;
@@ -48,7 +48,7 @@ interface UpdateSalonRequest {
   email?: string;
   website?: string;
   beautyosUrl?: string;
-  serviceLocation?: "AT_MY_SALON";
+  serviceLocation?:string;
   address: Address;
   address2?: Address;
   workingHours?: WorkingHours[];
@@ -66,7 +66,7 @@ export interface SalonResponse {
   email?: string;
   website?: string;
   beautyosUrl?: string;
-  serviceLocation?: "AT_MY_SALON";
+  serviceLocation?: string;
   address: Address;
   address2?: Address;
   workingHours?: WorkingHours[];
