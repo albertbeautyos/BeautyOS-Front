@@ -122,7 +122,10 @@ export const UserSheetContent: React.FC<UserSheetContentProps> = ({
                         submitButtonLabel={sheetMode === 'edit' ? "Update User" : "Add User"}
                     />
                 );
-            case 'DASH':
+            case 'SERVICES':
+                 <div>
+              <p>Services</p>
+            </div>
             case 'NOTES':
             case 'MESSAGES':
             case 'APPOINTMENTS':
@@ -135,7 +138,10 @@ export const UserSheetContent: React.FC<UserSheetContentProps> = ({
 
     const renderDesktopSidebarContent = () => {
         switch (selectedSidebarTab) {
-          case 'DASH':
+          case 'SERVICES':
+            <div>
+              <p>Services</p>
+            </div>
           case 'NOTES':
           case 'MESSAGES':
           case 'APPOINTMENTS':
@@ -146,8 +152,8 @@ export const UserSheetContent: React.FC<UserSheetContentProps> = ({
         }
     };
 
-    const TABS = ['INFO', 'DASH', 'NOTES', 'MESSAGES', 'APPOINTMENTS', 'PRODUCTS'];
-    const DESKTOP_SIDEBAR_TABS = ['DASH', 'NOTES', 'MESSAGES', 'APPOINTMENTS', 'PRODUCTS'];
+    const TABS = ['INFO', 'SERVICES', 'NOTES', 'MESSAGES', 'APPOINTMENTS', 'PRODUCTS'];
+    const DESKTOP_SIDEBAR_TABS = ['SERVICES', 'NOTES', 'MESSAGES', 'APPOINTMENTS', 'PRODUCTS'];
 
     return (
         <SheetContent className={cn(
