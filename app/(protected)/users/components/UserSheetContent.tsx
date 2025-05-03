@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { UserSheetHeaderContent, type SheetMode } from './UserSheetHeaderContent';
 import { User, NewUserData } from '@/services/users';
+import ServiceList from './ServiceList';
 
 // Interface for the main component props
 interface UserSheetContentProps {
@@ -77,7 +78,7 @@ export const UserSheetContent: React.FC<UserSheetContentProps> = ({
     onRequestDelete,
     isLoading
 }) => {
-    const [selectedSidebarTab, setSelectedSidebarTab] = useState<string>('DASH');
+    const [selectedSidebarTab, setSelectedSidebarTab] = useState<string>('SERVICES');
     const [selectedMobileTab, setSelectedMobileTab] = useState<string>('INFO');
 
     // Updated Static Data to match UserSheetHeaderContentProps
@@ -139,18 +140,18 @@ export const UserSheetContent: React.FC<UserSheetContentProps> = ({
     const renderDesktopSidebarContent = () => {
         switch (selectedSidebarTab) {
           case 'SERVICES':
-            <div>
-              <p>Services</p>
-            </div>
+           return <ServiceList salonId={selectedUser?.id}></ServiceList>
           case 'NOTES':
           case 'MESSAGES':
           case 'APPOINTMENTS':
           case 'PRODUCTS':
               return <div className="p-4 flex items-center justify-center h-full"><p className="text-lg font-medium text-muted-foreground">{selectedSidebarTab.charAt(0) + selectedSidebarTab.slice(1).toLowerCase()} Content Area</p></div>;
           default:
-              return null;
+              return null
+ ;
         }
     };
+    console.log(selectedSidebarTab)
 
     const TABS = ['INFO', 'SERVICES', 'NOTES', 'MESSAGES', 'APPOINTMENTS', 'PRODUCTS'];
     const DESKTOP_SIDEBAR_TABS = ['SERVICES', 'NOTES', 'MESSAGES', 'APPOINTMENTS', 'PRODUCTS'];
