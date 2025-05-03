@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getSalonServices } from '@/services/services'
 import type { SalonServicesResponse, Category, Service, Addon } from '@/services/services'
 import { formatPrice } from '@/lib/utils'
+import ServiceOptions from './ServiceOptions'
 
 export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string }) {
 
@@ -71,14 +72,6 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
     )
   }
 
-  if (!data || !data.categories || data.categories.length === 0) {
-    return (
-      <div className="text-center p-6 border border-dashed rounded-md">
-        <p className="text-muted-foreground">No services available for this salon</p>
-      </div>
-    )
-  }
-
   // Helper function to render duration
   const formatDuration = (duration: { start: number; break: number; finish: number }) => {
     const totalMinutes = duration.start + duration.break + duration.finish
@@ -91,15 +84,17 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
   }
 
   return (
-    <div className="w-full space-y-4">
-      <h2 className="text-2xl font-bold mb-6">Salon Services</h2>
+    <div className="w-full space-y-4 p-2" >
+      <div className="flex justify-center items-center mb-6">
+        <h2 className="text-xl  font-semibold">Salon Services</h2>
+      </div>
 
-      <div className="space-y-4">
-        {data.categories.map((category) => (
-          <div key={category.id} className="border rounded-lg overflow-hidden">
+      <div className="space-y-3">
+        {data?.categories?.map((category) => (
+          <div key={category.id} className="border rounded-md overflow-hidden shadow-sm">
             {/* Category Header */}
             <div
-              className="bg-muted p-4 flex items-center justify-between cursor-pointer"
+              className="bg-muted p-3 flex items-center justify-between cursor-pointer"
               onClick={() => toggleCategory(category.id)}
             >
               <div className="flex items-center">
@@ -109,9 +104,9 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
                     <span className="text-lg">▶</span>
                   }
                 </button>
-                <h3 className="font-medium">{category.name}</h3>
+                <h3 className="text-sm font-medium">{category.name}</h3>
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 {category.services.length} service{category.services.length !== 1 ? 's' : ''}
               </div>
             </div>
@@ -120,9 +115,9 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
             {expandedCategories.has(category.id) && (
               <div className="divide-y">
                 {category.services.map((service) => (
-                  <div key={service.id} className="px-4">
+                  <div key={service.id} className="px-3">
                     <div
-                      className="py-3 flex items-center justify-between cursor-pointer"
+                      className="py-2.5 flex items-center justify-between cursor-pointer"
                       onClick={() => toggleService(service.id)}
                     >
                       <div className="flex items-center">
@@ -134,29 +129,29 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
                             }
                           </button>
                         )}
-                        <div className="ml-4">
-                          <div className="font-medium">{service.name}</div>
-                          <div className="text-sm text-muted-foreground flex gap-2">
+                        <div className="ml-2">
+                          <div className="text-sm font-medium">{service.name}</div>
+                          <div className="text-xs text-muted-foreground flex gap-2">
                             <span>{formatDuration(service.duration)}</span>
                             {service.hasBreak && <span>• Break included</span>}
                           </div>
                         </div>
                       </div>
-                      <div className="font-medium">{formatPrice(service.cost)}</div>
+                      <div className="text-sm font-medium">{formatPrice(service.cost)}</div>
                     </div>
 
                     {/* Addons List */}
                     {expandedServices.has(service.id) && service.addons.length > 0 && (
-                      <div className="pl-10 pb-3 space-y-2">
+                      <div className="pl-8 pb-2 space-y-1.5">
                         {service.addons.map((addon) => (
                           <div key={addon.id} className="flex items-center justify-between py-1">
                             <div>
-                              <div className="text-sm font-medium">{addon.name}</div>
+                              <div className="text-xs font-medium">{addon.name}</div>
                               <div className="text-xs text-muted-foreground">
                                 {formatDuration(addon.duration)}
                               </div>
                             </div>
-                            <div className="text-sm font-medium">{formatPrice(addon.cost)}</div>
+                            <div className="text-xs font-medium">{formatPrice(addon.cost)}</div>
                           </div>
                         ))}
                       </div>
@@ -167,6 +162,14 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
             )}
           </div>
         ))}
+
+        {!data?.categories?.length && (
+          <div className="text-center p-6 border border-dashed rounded-md">
+            <p className="text-sm text-muted-foreground">No services available for this salon</p>
+          </div>
+        )}
+        <ServiceOptions />
+
       </div>
     </div>
   )
