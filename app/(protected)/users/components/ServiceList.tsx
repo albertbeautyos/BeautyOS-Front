@@ -5,30 +5,31 @@ import { getSalonServices } from '@/services/services'
 import type { SalonServicesResponse, Category, Service, Addon } from '@/services/services'
 import { formatPrice } from '@/lib/utils'
 import ServiceOptions from './ServiceOptions'
+import TemplateServiceList from './TemplateServiceList'
 
 export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string }) {
-
   const [data, setData] = useState<SalonServicesResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set())
+  const [showTemplates, setShowTemplates] = useState(false)
+
+  const fetchSalonServices = async () => {
+    try {
+      setLoading(true)
+      const result = await getSalonServices(salonId)
+      setData(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load salon services')
+      console.error('Error fetching salon services:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        const result = await getSalonServices(salonId)
-        setData(result)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load salon services')
-        console.error('Error fetching salon services:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
+    fetchSalonServices()
   }, [salonId])
 
   const toggleCategory = (categoryId: string) => {
@@ -53,6 +54,34 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
       }
       return newSet
     })
+  }
+
+  const handleLoadTemplates = () => {
+    setShowTemplates(true)
+  }
+
+  const handleCreateCustom = () => {
+    console.log('Create custom service - to be implemented')
+  }
+
+  const handleTemplatesComplete = async () => {
+    // Refresh salon services after adding templates
+    await fetchSalonServices()
+    setShowTemplates(false)
+  }
+
+  const handleTemplatesBack = () => {
+    setShowTemplates(false)
+  }
+
+  if (showTemplates) {
+    return (
+      <TemplateServiceList
+        salonId={salonId}
+        onComplete={handleTemplatesComplete}
+        onBack={handleTemplatesBack}
+      />
+    )
   }
 
   if (loading) {
@@ -86,7 +115,7 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
   return (
     <div className="w-full space-y-4 p-2" >
       <div className="flex justify-center items-center mb-6">
-        <h2 className="text-xl  font-semibold">Salon Services</h2>
+        <h2 className="text-xl font-semibold">Salon Services</h2>
       </div>
 
       <div className="space-y-3">
@@ -168,8 +197,7 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
             <p className="text-sm text-muted-foreground">No services available for this salon</p>
           </div>
         )}
-        <ServiceOptions />
-
+        <ServiceOptions onLoadTemplates={handleLoadTemplates} onCreateCustom={handleCreateCustom} />
       </div>
     </div>
   )

@@ -6,23 +6,30 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { PlusIcon, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-export default function ServiceOptions() {
+export default function ServiceOptions({ onLoadTemplates, onCreateCustom }: {
+  onLoadTemplates?: () => void,
+  onCreateCustom?: () => void
+}) {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleCreateCustomService = () => {
-    console.log('Create custom service')
+    if (onCreateCustom) {
+      onCreateCustom()
+    }
+    setIsOpen(false)
   }
 
   const handleUseTemplate = () => {
-    console.log('Use BeautyOs template')
+    if (onLoadTemplates) {
+      onLoadTemplates()
+    }
+    setIsOpen(false)
   }
 
   return (
