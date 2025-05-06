@@ -109,6 +109,12 @@ export interface ReorderItemResponse {
   data: ReorderItemData;
 }
 
+export interface CategoryOrderResponse {
+  success: boolean;
+  message: string;
+  data: CategoryData;
+}
+
 /**
  * Fetches salon services data including categories, services, and add-ons hierarchy
  * @param salonId - The ID of the salon to fetch services for
@@ -123,6 +129,35 @@ export const getSalonServices = async (salonId: string): Promise<SalonServicesRe
     return response.data;
   } catch (error) {
     throw error instanceof Error ? error : new Error('Unknown error occurred');
+  }
+};
+
+/**
+ * Updates the order of a salon category
+ * @param salonCategoryId - The ID of the salon category to reorder
+ * @param newOrderIndex - The new order index for the category
+ * @param salonId - The ID of the salon to use in the user-id header
+ * @returns Promise with the response data
+ */
+export const updateCategoryOrder = async (
+  salonCategoryId: string,
+  newOrderIndex: number,
+  salonId: string
+): Promise<CategoryOrderResponse> => {
+  try {
+    const response = await axiosInstance.patch(
+      `/salon-categories/${salonCategoryId}/order`,
+      { newOrderIndex },
+      {
+        headers: {
+          'user-id': salonId
+        }
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw error instanceof Error ? error : new Error('Failed to update category order');
   }
 };
 

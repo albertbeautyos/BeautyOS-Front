@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { getSalonServices } from '@/services/services'
+import { getSalonServices, updateCategoryOrder } from '@/services/services'
 import type { SalonServicesResponse, Category, Service, Addon } from '@/services/services'
 import { formatPrice } from '@/lib/utils'
 import ServiceOptions from './ServiceOptions'
@@ -16,26 +16,30 @@ import {
   DragEndEvent,
   DragStartEvent,
   DragOverEvent,
-  useDraggable,
-  useDroppable,
 } from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import { toast } from 'sonner'
 
 type DragData = {
   type: 'category' | 'service';
   categoryId: string;
 }
 
-// Draggable Category component
-function DraggableCategory({
+// Sortable Category component
+function SortableCategory({
   category,
   expandedCategories,
   toggleCategory,
   expandedServices,
   toggleService,
   formatDuration,
-  activeId,
 }: {
   category: Category;
   expandedCategories: Set<string>;
@@ -43,9 +47,15 @@ function DraggableCategory({
   expandedServices: Set<string>;
   toggleService: (id: string) => void;
   formatDuration: (duration: { start: number; break: number; finish: number }) => string;
-  activeId: string | null;
 }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: category.id,
     data: {
       type: 'category',
@@ -53,33 +63,18 @@ function DraggableCategory({
     }
   });
 
-  const { isOver, setNodeRef: setDropRef } = useDroppable({
-    id: `category-${category.id}`,
-    data: {
-      type: 'category',
-      categoryId: category.id
-    }
-  });
-
-  const style = transform ? {
-    transform: CSS.Translate.toString(transform),
-    opacity: activeId === category.id ? 0.5 : 1,
-    zIndex: activeId === category.id ? 999 : 1,
-  } : {};
-
-  // Highlight the category when a draggable service is over it
-  const categoryHighlight = isOver ? {
-    borderColor: '#3b82f6',
-    borderWidth: '2px',
-    borderStyle: 'dashed',
-    backgroundColor: '#f0f9ff'
-  } : {};
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 999 : 1,
+  };
 
   return (
     <div
-      ref={setDropRef}
+      ref={setNodeRef}
+      style={style}
       className="border rounded-md overflow-hidden shadow-sm mb-3"
-      style={{...categoryHighlight}}
     >
       {/* Category Header */}
       <div
@@ -88,11 +83,9 @@ function DraggableCategory({
       >
         <div className="flex items-center">
           <div
-            ref={setNodeRef}
             className="mr-2 text-sm px-2 py-1 cursor-move"
             {...attributes}
             {...listeners}
-            style={style}
           >
             ⋮⋮
           </div>
@@ -113,14 +106,13 @@ function DraggableCategory({
       {expandedCategories.has(category.id) && (
         <div className="divide-y">
           {category.services.map((service) => (
-            <DraggableService
+            <SortableService
               key={service.id}
               service={service}
               expandedServices={expandedServices}
               toggleService={toggleService}
               formatDuration={formatDuration}
               categoryId={category.id}
-              activeId={activeId}
             />
           ))}
         </div>
@@ -129,23 +121,28 @@ function DraggableCategory({
   );
 }
 
-// Draggable Service component
-function DraggableService({
+// Sortable Service component
+function SortableService({
   service,
   expandedServices,
   toggleService,
   formatDuration,
   categoryId,
-  activeId,
 }: {
   service: Service;
   expandedServices: Set<string>;
   toggleService: (id: string) => void;
   formatDuration: (duration: { start: number; break: number; finish: number }) => string;
   categoryId: string;
-  activeId: string | null;
 }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: service.id,
     data: {
       type: 'service',
@@ -153,31 +150,18 @@ function DraggableService({
     }
   });
 
-  const { isOver, setNodeRef: setDropRef } = useDroppable({
-    id: `service-${service.id}`,
-    data: {
-      type: 'service',
-      categoryId: categoryId
-    }
-  });
-
-  const style = transform ? {
-    transform: CSS.Translate.toString(transform),
-    opacity: activeId === service.id ? 0.5 : 1,
-    zIndex: activeId === service.id ? 999 : 1,
-  } : {};
-
-  // Highlight the service when a draggable service is over it
-  const serviceHighlight = isOver ? {
-    backgroundColor: '#f0f9ff',
-    borderLeft: '3px solid #3b82f6'
-  } : {};
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 999 : 1,
+  };
 
   return (
     <div
-      ref={setDropRef}
+      ref={setNodeRef}
+      style={style}
       className="px-3"
-      style={{...serviceHighlight}}
     >
       <div
         className="py-2.5 flex items-center justify-between cursor-pointer"
@@ -185,11 +169,9 @@ function DraggableService({
       >
         <div className="flex items-center">
           <div
-            ref={setNodeRef}
             className="mr-2 text-sm px-2 py-1 cursor-move"
             {...attributes}
             {...listeners}
-            style={style}
           >
             ⋮⋮
           </div>
@@ -230,6 +212,33 @@ function DraggableService({
       )}
     </div>
   );
+}
+
+// Skeleton loading component
+function ServiceListSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="border rounded-md overflow-hidden shadow-sm">
+          <div className="bg-muted p-3 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="h-4 w-4 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+            </div>
+            <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
+          </div>
+          <div className="p-3 space-y-2">
+            {[...Array(2)].map((_, j) => (
+              <div key={j} className="flex items-center justify-between">
+                <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string }) {
@@ -326,51 +335,30 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
       },
     }),
     useSensor(KeyboardSensor, {
-      coordinateGetter: (event) => {
-        return {
-          x: 0,
-          y: event.code === 'ArrowDown' ? 5 : event.code === 'ArrowUp' ? -5 : 0,
-        };
-      },
+      coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
   // Handler for drag start
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-    setActiveData(event.active.data.current as DragData);
-  };
-
-  // Handler for drag over
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-
-    if (!over) {
-      setOverCategory(null);
-      return;
-    }
-
-    // Extract data from the over element
-    const overData = over.data.current as DragData | undefined;
-    if (overData && overData.type === 'category') {
-      setOverCategory(overData.categoryId);
-    } else if (overData && overData.type === 'service') {
-      // If over a service, get its category
-      setOverCategory(overData.categoryId);
-    } else {
-      setOverCategory(null);
+    const activeData = event.active.data.current as DragData;
+    if (activeData?.type === 'category') {
+      setExpandedCategories(new Set());
     }
   };
 
   // Handler for drag end
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
-    setActiveId(null);
-    setActiveData(null);
-    setOverCategory(null);
-
-    if (!over) return;
+    if (!over) {
+      // If dropped outside, re-expand categories only if we were dragging a category
+      const activeData = active.data.current as DragData;
+      if (activeData?.type === 'category' && data?.categories) {
+        setExpandedCategories(new Set(data.categories.map(c => c.id)));
+      }
+      return;
+    }
 
     // Extract data from both elements
     const activeData = active.data.current as DragData | undefined;
@@ -381,33 +369,60 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Extract real IDs without prefixes
-    const activeRealId = activeId;
-    const overRealId = overId.startsWith('category-')
-      ? overId.substring(9)
-      : overId.startsWith('service-')
-        ? overId.substring(8)
-        : overId;
-
     // Skip if dropping onto itself
-    if (activeRealId === overRealId) return;
+    if (activeId === overId) {
+      // Re-expand categories only if we were dragging a category
+      if (activeData.type === 'category' && data?.categories) {
+        setExpandedCategories(new Set(data.categories.map(c => c.id)));
+      }
+      return;
+    }
 
     // CASE 1: Reordering categories
     if (activeData.type === 'category' && overData.type === 'category') {
-      setData(prevData => {
-        if (!prevData?.categories) return prevData;
+      // Store the current state for potential rollback
+      const previousData = data;
 
-        const oldIndex = prevData.categories.findIndex(c => c.id === activeRealId);
-        const newIndex = prevData.categories.findIndex(c => c.id === overRealId);
+      try {
+        // Find the new order index based on the over category
+        const overCategoryIndex = data?.categories.findIndex(c => c.id === overId) ?? -1;
+        if (overCategoryIndex === -1) return;
 
-        if (oldIndex === -1 || newIndex === -1) return prevData;
+        // Update the local state first for immediate feedback
+        setData(prevData => {
+          if (!prevData?.categories) return prevData;
 
-        const newCategories = [...prevData.categories];
-        const [movedCategory] = newCategories.splice(oldIndex, 1);
-        newCategories.splice(newIndex, 0, movedCategory);
+          const oldIndex = prevData.categories.findIndex(c => c.id === activeId);
+          const newIndex = prevData.categories.findIndex(c => c.id === overId);
 
-        return { ...prevData, categories: newCategories };
-      });
+          if (oldIndex === -1 || newIndex === -1) return prevData;
+
+          const newCategories = [...prevData.categories];
+          const [movedCategory] = newCategories.splice(oldIndex, 1);
+          newCategories.splice(newIndex, 0, movedCategory);
+
+          return { ...prevData, categories: newCategories };
+        });
+
+        // Expand all categories after local update
+        if (data?.categories) {
+          setExpandedCategories(new Set(data.categories.map(c => c.id)));
+        }
+
+        // Make the API call after local update
+        await updateCategoryOrder(activeId, overCategoryIndex, salonId);
+
+        toast.success('Category order updated successfully');
+      } catch (error) {
+        console.error('Error updating category order:', error);
+        // Revert to previous state on error
+        setData(previousData);
+        toast.error('Failed to update category order');
+        // Re-expand categories in case of error
+        if (previousData?.categories) {
+          setExpandedCategories(new Set(previousData.categories.map(c => c.id)));
+        }
+      }
       return;
     }
 
@@ -420,8 +435,8 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
         if (categoryIndex === -1) return prevData;
 
         const services = prevData.categories[categoryIndex].services;
-        const oldIndex = services.findIndex(s => s.id === activeRealId);
-        const newIndex = services.findIndex(s => s.id === overRealId);
+        const oldIndex = services.findIndex(s => s.id === activeId);
+        const newIndex = services.findIndex(s => s.id === overId);
 
         if (oldIndex === -1 || newIndex === -1) return prevData;
 
@@ -446,7 +461,7 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
       const targetCategoryId = overData.type === 'service'
         ? overData.categoryId
         : overData.type === 'category'
-          ? overRealId
+          ? overId
           : null;
 
       if (targetCategoryId && activeData.categoryId !== targetCategoryId) {
@@ -459,7 +474,7 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
           if (sourceCategoryIndex === -1 || targetCategoryIndex === -1) return prevData;
 
           // Find the service to move
-          const serviceIndex = prevData.categories[sourceCategoryIndex].services.findIndex(s => s.id === activeRealId);
+          const serviceIndex = prevData.categories[sourceCategoryIndex].services.findIndex(s => s.id === activeId);
           if (serviceIndex === -1) return prevData;
 
           // Create a deep copy of categories
@@ -471,7 +486,7 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
           // Add service to target category
           // If dropping over a specific service, find its position
           if (overData.type === 'service') {
-            const targetServiceIndex = newCategories[targetCategoryIndex].services.findIndex(s => s.id === overRealId);
+            const targetServiceIndex = newCategories[targetCategoryIndex].services.findIndex(s => s.id === overId);
             if (targetServiceIndex !== -1) {
               newCategories[targetCategoryIndex].services.splice(targetServiceIndex, 0, movedService);
             } else {
@@ -500,8 +515,11 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-40">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="w-full space-y-4 p-2">
+        <div className="flex justify-center items-center mb-6">
+          <h2 className="text-xl font-semibold">Salon Services</h2>
+        </div>
+        <ServiceListSkeleton />
       </div>
     )
   }
@@ -525,24 +543,27 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
         modifiers={[restrictToVerticalAxis]}
       >
-        <div className="space-y-3">
-          {data?.categories?.map((category) => (
-            <DraggableCategory
-              key={category.id}
-              category={category}
-              expandedCategories={expandedCategories}
-              toggleCategory={toggleCategory}
-              expandedServices={expandedServices}
-              toggleService={toggleService}
-              formatDuration={formatDuration}
-              activeId={activeId}
-            />
-          ))}
-        </div>
+        <SortableContext
+          items={data?.categories.map(c => c.id) ?? []}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-3">
+            {data?.categories?.map((category) => (
+              <SortableCategory
+                key={category.id}
+                category={category}
+                expandedCategories={expandedCategories}
+                toggleCategory={toggleCategory}
+                expandedServices={expandedServices}
+                toggleService={toggleService}
+                formatDuration={formatDuration}
+              />
+            ))}
+          </div>
+        </SortableContext>
       </DndContext>
 
       {!data?.categories?.length && (
