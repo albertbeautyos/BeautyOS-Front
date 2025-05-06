@@ -16,19 +16,22 @@ import {
   DragEndEvent,
   DragStartEvent,
   DragOverEvent,
+  DragOverlay,
+  useDroppable,
 } from '@dnd-kit/core'
 import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
+  arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { toast } from 'sonner'
 
 type DragData = {
-  type: 'category' | 'service';
+  type: 'category' | 'service' | 'container';
   categoryId: string;
 }
 
@@ -104,19 +107,43 @@ function SortableCategory({
 
       {/* Services List */}
       {expandedCategories.has(category.id) && (
-        <div className="divide-y">
-          {category.services.map((service) => (
-            <SortableService
-              key={service.id}
-              service={service}
-              expandedServices={expandedServices}
-              toggleService={toggleService}
-              formatDuration={formatDuration}
-              categoryId={category.id}
-            />
-          ))}
-        </div>
+        <DroppableContainer id={category.id}>
+          <SortableContext
+            items={category.services.map(s => s.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="divide-y">
+              {category.services.map((service) => (
+                <SortableService
+                  key={service.id}
+                  service={service}
+                  expandedServices={expandedServices}
+                  toggleService={toggleService}
+                  formatDuration={formatDuration}
+                  categoryId={category.id}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DroppableContainer>
       )}
+    </div>
+  );
+}
+
+// Droppable Container component
+function DroppableContainer({ id, children }: { id: string; children: React.ReactNode }) {
+  const { setNodeRef } = useDroppable({
+    id,
+    data: {
+      type: 'container',
+      categoryId: id
+    }
+  });
+
+  return (
+    <div ref={setNodeRef} className="w-full">
+      {children}
     </div>
   );
 }
@@ -214,6 +241,31 @@ function SortableService({
   );
 }
 
+// Drag Overlay component
+function DragOverlayContent({ activeId, data }: { activeId: string | null; data: SalonServicesResponse | null }) {
+  if (!activeId || !data) return null;
+
+  // Find the active item
+  const activeItem = data.categories.find(c => c.id === activeId) ||
+    data.categories.flatMap(c => c.services).find(s => s.id === activeId);
+
+  if (!activeItem) return null;
+
+  return (
+    <div className="border rounded-md overflow-hidden shadow-lg bg-background">
+      <div className="bg-muted p-3 flex items-center justify-between">
+        <div className="flex items-center">
+          <div className="mr-2 text-sm px-2 py-1">⋮⋮</div>
+          <h3 className="text-sm font-medium">{activeItem.name}</h3>
+        </div>
+        {'cost' in activeItem && (
+          <div className="text-sm font-medium">{formatPrice(activeItem.cost)}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Skeleton loading component
 function ServiceListSkeleton() {
   return (
@@ -249,8 +301,6 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
   const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set())
   const [showTemplates, setShowTemplates] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [activeData, setActiveData] = useState<DragData | null>(null)
-  const [overCategory, setOverCategory] = useState<string | null>(null)
 
   const fetchSalonServices = async () => {
     try {
@@ -341,9 +391,82 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
 
   // Handler for drag start
   const handleDragStart = (event: DragStartEvent) => {
-    const activeData = event.active.data.current as DragData;
-    if (activeData?.type === 'category') {
-      setExpandedCategories(new Set());
+    setActiveId(event.active.id as string);
+  };
+
+  // Handler for drag over
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeData = active.data.current as DragData;
+    const overData = over.data.current as DragData;
+
+    if (!activeData || !overData) return;
+
+    // Add visual feedback for different operations
+    const overElement = document.getElementById(over.id as string);
+    if (!overElement) return;
+
+    // Remove all highlight classes
+    document.querySelectorAll('.drag-over').forEach(el => {
+      el.classList.remove('drag-over');
+      el.classList.remove('drag-over-up');
+      el.classList.remove('drag-over-down');
+    });
+
+    if (activeData.type === 'service') {
+      if (overData.type === 'service') {
+        // Moving within the same category
+        if (activeData.categoryId === overData.categoryId) {
+          const activeElement = document.getElementById(active.id as string);
+          if (!activeElement) return;
+
+          const activeRect = activeElement.getBoundingClientRect();
+          const overRect = overElement.getBoundingClientRect();
+
+          const activeCenterY = activeRect.top + activeRect.height / 2;
+          const overCenterY = overRect.top + overRect.height / 2;
+
+          if (activeCenterY < overCenterY) {
+            overElement.classList.add('drag-over-down');
+          } else {
+            overElement.classList.add('drag-over-up');
+          }
+        }
+      } else if (overData.type === 'container') {
+        // Moving to a different category
+        const targetCategoryId = overData.categoryId;
+        const targetCategory = data?.categories.find(c => c.id === targetCategoryId);
+        if (!targetCategory) return;
+
+        // Get all service elements in the target category
+        const targetServices = targetCategory.services.map(s => document.getElementById(s.id));
+
+        // Calculate the drop position
+        const activeElement = document.getElementById(active.id as string);
+        if (!activeElement) return;
+
+        const activeRect = activeElement.getBoundingClientRect();
+        const overRect = overElement.getBoundingClientRect();
+
+        const activeCenterY = activeRect.top + activeRect.height / 2;
+        const overCenterY = overRect.top + overRect.height / 2;
+
+        // Add visual feedback to all services in the target category
+        targetServices.forEach((serviceElement, index) => {
+          if (!serviceElement) return;
+
+          const serviceRect = serviceElement.getBoundingClientRect();
+          const serviceCenterY = serviceRect.top + serviceRect.height / 2;
+
+          if (activeCenterY < serviceCenterY) {
+            serviceElement.classList.add('drag-over-down');
+          } else {
+            serviceElement.classList.add('drag-over-up');
+          }
+        });
+      }
     }
   };
 
@@ -352,155 +475,107 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
     const { active, over } = event;
 
     if (!over) {
-      // If dropped outside, re-expand categories only if we were dragging a category
-      const activeData = active.data.current as DragData;
-      if (activeData?.type === 'category' && data?.categories) {
-        setExpandedCategories(new Set(data.categories.map(c => c.id)));
-      }
+      setActiveId(null);
       return;
     }
-
-    // Extract data from both elements
-    const activeData = active.data.current as DragData | undefined;
-    const overData = over.data.current as DragData | undefined;
-
-    if (!activeData || !overData) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
 
     // Skip if dropping onto itself
     if (activeId === overId) {
-      // Re-expand categories only if we were dragging a category
-      if (activeData.type === 'category' && data?.categories) {
-        setExpandedCategories(new Set(data.categories.map(c => c.id)));
-      }
+      setActiveId(null);
       return;
     }
 
+    const activeData = active.data.current as DragData | undefined;
+    const overData = over.data.current as DragData | undefined;
+
+    if (!activeData || !overData || !data?.categories) {
+      setActiveId(null);
+      return;
+    }
+
+    // Remove all highlight classes
+    document.querySelectorAll('.drag-over').forEach(el => {
+      el.classList.remove('drag-over');
+      el.classList.remove('drag-over-up');
+      el.classList.remove('drag-over-down');
+    });
+
     // CASE 1: Reordering categories
     if (activeData.type === 'category' && overData.type === 'category') {
-      // Store the current state for potential rollback
-      const previousData = data;
+      const oldIndex = data.categories.findIndex(c => c.id === activeId);
+      const newIndex = data.categories.findIndex(c => c.id === overId);
 
-      try {
-        // Find the new order index based on the over category
-        const overCategoryIndex = data?.categories.findIndex(c => c.id === overId) ?? -1;
-        if (overCategoryIndex === -1) return;
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newCategories = arrayMove(data.categories, oldIndex, newIndex);
+        setData({ ...data, categories: newCategories });
 
-        // Update the local state first for immediate feedback
-        setData(prevData => {
-          if (!prevData?.categories) return prevData;
-
-          const oldIndex = prevData.categories.findIndex(c => c.id === activeId);
-          const newIndex = prevData.categories.findIndex(c => c.id === overId);
-
-          if (oldIndex === -1 || newIndex === -1) return prevData;
-
-          const newCategories = [...prevData.categories];
-          const [movedCategory] = newCategories.splice(oldIndex, 1);
-          newCategories.splice(newIndex, 0, movedCategory);
-
-          return { ...prevData, categories: newCategories };
-        });
-
-        // Expand all categories after local update
-        if (data?.categories) {
-          setExpandedCategories(new Set(data.categories.map(c => c.id)));
-        }
-
-        // Make the API call after local update
-        await updateCategoryOrder(activeId, overCategoryIndex, salonId);
-
-        toast.success('Category order updated successfully');
-      } catch (error) {
-        console.error('Error updating category order:', error);
-        // Revert to previous state on error
-        setData(previousData);
-        toast.error('Failed to update category order');
-        // Re-expand categories in case of error
-        if (previousData?.categories) {
-          setExpandedCategories(new Set(previousData.categories.map(c => c.id)));
+        try {
+          await updateCategoryOrder(activeId, newIndex, salonId);
+          toast.success('Category order updated successfully');
+        } catch (error) {
+          console.error('Error updating category order:', error);
+          setData(data); // Revert on error
+          toast.error('Failed to update category order');
         }
       }
-      return;
     }
 
     // CASE 2: Reordering services within the same category
     if (activeData.type === 'service' && overData.type === 'service' && activeData.categoryId === overData.categoryId) {
-      setData(prevData => {
-        if (!prevData?.categories) return prevData;
+      const categoryIndex = data.categories.findIndex(c => c.id === activeData.categoryId);
+      if (categoryIndex === -1) return;
 
-        const categoryIndex = prevData.categories.findIndex(c => c.id === activeData.categoryId);
-        if (categoryIndex === -1) return prevData;
+      const services = data.categories[categoryIndex].services;
+      const oldIndex = services.findIndex(s => s.id === activeId);
+      const newIndex = services.findIndex(s => s.id === overId);
 
-        const services = prevData.categories[categoryIndex].services;
-        const oldIndex = services.findIndex(s => s.id === activeId);
-        const newIndex = services.findIndex(s => s.id === overId);
-
-        if (oldIndex === -1 || newIndex === -1) return prevData;
-
-        const newCategories = [...prevData.categories];
-        const newServices = [...services];
-        const [movedService] = newServices.splice(oldIndex, 1);
-        newServices.splice(newIndex, 0, movedService);
-
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newServices = arrayMove(services, oldIndex, newIndex);
+        const newCategories = [...data.categories];
         newCategories[categoryIndex] = {
           ...newCategories[categoryIndex],
           services: newServices
         };
-
-        return { ...prevData, categories: newCategories };
-      });
-      return;
+        setData({ ...data, categories: newCategories });
+        toast.success('Service order updated successfully');
+      }
     }
 
     // CASE 3: Moving service to a different category
-    if (activeData.type === 'service') {
-      // Get target category ID (either from a service or directly from a category)
-      const targetCategoryId = overData.type === 'service'
-        ? overData.categoryId
-        : overData.type === 'category'
-          ? overId
-          : null;
+    if (activeData.type === 'service' && (overData.type === 'container' || overData.type === 'service')) {
+      const sourceCategoryIndex = data.categories.findIndex(c => c.id === activeData.categoryId);
+      const targetCategoryId = overData.type === 'service' ? overData.categoryId : overId;
+      const targetCategoryIndex = data.categories.findIndex(c => c.id === targetCategoryId);
 
-      if (targetCategoryId && activeData.categoryId !== targetCategoryId) {
-        setData(prevData => {
-          if (!prevData?.categories) return prevData;
+      if (sourceCategoryIndex !== -1 && targetCategoryIndex !== -1) {
+        const sourceServiceIndex = data.categories[sourceCategoryIndex].services.findIndex(s => s.id === activeId);
+        if (sourceServiceIndex === -1) return;
 
-          const sourceCategoryIndex = prevData.categories.findIndex(c => c.id === activeData.categoryId);
-          const targetCategoryIndex = prevData.categories.findIndex(c => c.id === targetCategoryId);
+        const newCategories = [...data.categories];
+        const [movedService] = newCategories[sourceCategoryIndex].services.splice(sourceServiceIndex, 1);
 
-          if (sourceCategoryIndex === -1 || targetCategoryIndex === -1) return prevData;
-
-          // Find the service to move
-          const serviceIndex = prevData.categories[sourceCategoryIndex].services.findIndex(s => s.id === activeId);
-          if (serviceIndex === -1) return prevData;
-
-          // Create a deep copy of categories
-          const newCategories = [...prevData.categories];
-
-          // Remove service from source category
-          const [movedService] = newCategories[sourceCategoryIndex].services.splice(serviceIndex, 1);
-
-          // Add service to target category
-          // If dropping over a specific service, find its position
-          if (overData.type === 'service') {
-            const targetServiceIndex = newCategories[targetCategoryIndex].services.findIndex(s => s.id === overId);
-            if (targetServiceIndex !== -1) {
-              newCategories[targetCategoryIndex].services.splice(targetServiceIndex, 0, movedService);
-            } else {
-              newCategories[targetCategoryIndex].services.push(movedService);
-            }
+        // If dropping over a service, insert at that position
+        if (overData.type === 'service') {
+          const targetServiceIndex = newCategories[targetCategoryIndex].services.findIndex(s => s.id === overId);
+          if (targetServiceIndex !== -1) {
+            newCategories[targetCategoryIndex].services.splice(targetServiceIndex, 0, movedService);
           } else {
-            // If dropping over a category, add to the end
             newCategories[targetCategoryIndex].services.push(movedService);
           }
+        } else {
+          // If dropping over a category, add to the end
+          newCategories[targetCategoryIndex].services.push(movedService);
+        }
 
-          return { ...prevData, categories: newCategories };
-        });
+        setData({ ...data, categories: newCategories });
+        toast.success('Service moved to new category successfully');
       }
     }
+
+    setActiveId(null);
   };
 
   if (showTemplates) {
@@ -539,10 +614,70 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
         <h2 className="text-xl font-semibold">Salon Services</h2>
       </div>
 
+      <style jsx global>{`
+        .sortable-item {
+          transition: all 200ms ease;
+          position: relative;
+        }
+        .sortable-item.sorting {
+          transform: translateY(0);
+          transition: all 200ms ease;
+        }
+        .sortable-item.sorting-up {
+          transform: translateY(-100%);
+          transition: all 200ms ease;
+        }
+        .sortable-item.sorting-down {
+          transform: translateY(100%);
+          transition: all 200ms ease;
+        }
+        .sortable-item.dragging {
+          opacity: 0.5;
+          transform: scale(1.02);
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+          z-index: 999;
+        }
+        .sortable-item.drag-over {
+          background-color: hsl(var(--muted));
+          border-left: 2px solid hsl(var(--primary));
+        }
+        .sortable-item.drag-over-up {
+          border-top: 2px solid hsl(var(--primary));
+          background-color: hsl(var(--muted));
+          transform: translateY(-4px);
+        }
+        .sortable-item.drag-over-down {
+          border-bottom: 2px solid hsl(var(--primary));
+          background-color: hsl(var(--muted));
+          transform: translateY(4px);
+        }
+        .sortable-item.drag-over-up::before {
+          content: '';
+          position: absolute;
+          top: -2px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background-color: hsl(var(--primary));
+          opacity: 0.5;
+        }
+        .sortable-item.drag-over-down::before {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background-color: hsl(var(--primary));
+          opacity: 0.5;
+        }
+      `}</style>
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
         modifiers={[restrictToVerticalAxis]}
       >
@@ -564,6 +699,10 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
             ))}
           </div>
         </SortableContext>
+
+        <DragOverlay>
+          <DragOverlayContent activeId={activeId} data={data} />
+        </DragOverlay>
       </DndContext>
 
       {!data?.categories?.length && (
