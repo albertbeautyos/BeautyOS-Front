@@ -115,6 +115,12 @@ export interface CategoryOrderResponse {
   data: CategoryData;
 }
 
+export interface ServiceOrderResponse {
+  success: boolean;
+  message: string;
+  data: ServiceData;
+}
+
 /**
  * Fetches salon services data including categories, services, and add-ons hierarchy
  * @param salonId - The ID of the salon to fetch services for
@@ -158,6 +164,35 @@ export const updateCategoryOrder = async (
     return response.data;
   } catch (error) {
     throw error instanceof Error ? error : new Error('Failed to update category order');
+  }
+};
+
+/**
+ * Updates the order of a salon service
+ * @param serviceId - The ID of the service to reorder
+ * @param newOrderIndex - The new order index for the service
+ * @param salonId - The ID of the salon to use in the user-id header
+ * @returns Promise with the response data
+ */
+export const updateServiceOrder = async (
+  serviceId: string,
+  newOrderIndex: number,
+  salonId: string
+): Promise<ServiceOrderResponse> => {
+  try {
+    const response = await axiosInstance.patch(
+      `/salon-services/${serviceId}/order`,
+      { newOrderIndex },
+      {
+        headers: {
+          'user-id': salonId
+        }
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw error instanceof Error ? error : new Error('Failed to update service order');
   }
 };
 
