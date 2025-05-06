@@ -175,7 +175,7 @@ export const CreateSalonForm = ({ onSuccess, initialData, isEditing }: CreateSal
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
-        <div className="flex-grow overflow-y-auto pr-4 space-y-4 mb-4 max-h-[calc(100vh-200px)]">
+        <div className="flex-grow overflow-y-auto p-4 space-y-4 mb-4 max-h-[calc(100vh-200px)]">
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}

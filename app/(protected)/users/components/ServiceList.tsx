@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { getSalonServices, updateCategoryOrder } from '@/services/services'
+import { getSalonServices, updateCategoryOrder, updateServiceOrder } from '@/services/services'
 import type { SalonServicesResponse, Category, Service, Addon } from '@/services/services'
 import { formatPrice } from '@/lib/utils'
 import ServiceOptions from './ServiceOptions'
@@ -33,6 +33,13 @@ import { toast } from 'sonner'
 type DragData = {
   type: 'category' | 'service' | 'container';
   categoryId: string;
+}
+
+// Add this type declaration at the top of the file, after the imports
+declare global {
+  interface Window {
+    __previousExpandedCategories?: Set<string>;
+  }
 }
 
 // Sortable Category component
@@ -417,33 +424,7 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
 
     if (activeData.type === 'service') {
       if (overData.type === 'service') {
-        // Moving within the same category
-        if (activeData.categoryId === overData.categoryId) {
-          const activeElement = document.getElementById(active.id as string);
-          if (!activeElement) return;
-
-          const activeRect = activeElement.getBoundingClientRect();
-          const overRect = overElement.getBoundingClientRect();
-
-          const activeCenterY = activeRect.top + activeRect.height / 2;
-          const overCenterY = overRect.top + overRect.height / 2;
-
-          if (activeCenterY < overCenterY) {
-            overElement.classList.add('drag-over-down');
-          } else {
-            overElement.classList.add('drag-over-up');
-          }
-        }
-      } else if (overData.type === 'container') {
-        // Moving to a different category
-        const targetCategoryId = overData.categoryId;
-        const targetCategory = data?.categories.find(c => c.id === targetCategoryId);
-        if (!targetCategory) return;
-
-        // Get all service elements in the target category
-        const targetServices = targetCategory.services.map(s => document.getElementById(s.id));
-
-        // Calculate the drop position
+        // Moving within the same category or to a different category
         const activeElement = document.getElementById(active.id as string);
         if (!activeElement) return;
 
@@ -453,19 +434,61 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
         const activeCenterY = activeRect.top + activeRect.height / 2;
         const overCenterY = overRect.top + overRect.height / 2;
 
-        // Add visual feedback to all services in the target category
-        targetServices.forEach((serviceElement, index) => {
-          if (!serviceElement) return;
+        if (activeCenterY < overCenterY) {
+          overElement.classList.add('drag-over-down');
+        } else {
+          overElement.classList.add('drag-over-up');
+        }
 
-          const serviceRect = serviceElement.getBoundingClientRect();
-          const serviceCenterY = serviceRect.top + serviceRect.height / 2;
+        // If moving to a different category, also show movement for other services in target category
+        if (activeData.categoryId !== overData.categoryId) {
+          const targetCategory = data?.categories.find(c => c.id === overData.categoryId);
+          if (targetCategory) {
+            targetCategory.services.forEach(service => {
+              if (service.id === over.id) return; // Skip the current over element
 
-          if (activeCenterY < serviceCenterY) {
-            serviceElement.classList.add('drag-over-down');
-          } else {
-            serviceElement.classList.add('drag-over-up');
+              const serviceElement = document.getElementById(service.id);
+              if (!serviceElement) return;
+
+              const serviceRect = serviceElement.getBoundingClientRect();
+              const serviceCenterY = serviceRect.top + serviceRect.height / 2;
+
+              if (activeCenterY < serviceCenterY) {
+                serviceElement.classList.add('drag-over-down');
+              } else {
+                serviceElement.classList.add('drag-over-up');
+              }
+            });
           }
-        });
+        }
+      } else if (overData.type === 'container') {
+        // Moving to a different category container
+        const activeElement = document.getElementById(active.id as string);
+        if (!activeElement) return;
+
+        const activeRect = activeElement.getBoundingClientRect();
+        const overRect = overElement.getBoundingClientRect();
+
+        const activeCenterY = activeRect.top + activeRect.height / 2;
+        const overCenterY = overRect.top + overRect.height / 2;
+
+        // Get all service elements in the target category
+        const targetCategory = data?.categories.find(c => c.id === overData.categoryId);
+        if (targetCategory) {
+          targetCategory.services.forEach(service => {
+            const serviceElement = document.getElementById(service.id);
+            if (!serviceElement) return;
+
+            const serviceRect = serviceElement.getBoundingClientRect();
+            const serviceCenterY = serviceRect.top + serviceRect.height / 2;
+
+            if (activeCenterY < serviceCenterY) {
+              serviceElement.classList.add('drag-over-down');
+            } else {
+              serviceElement.classList.add('drag-over-up');
+            }
+          });
+        }
       }
     }
   };
@@ -540,7 +563,15 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
           services: newServices
         };
         setData({ ...data, categories: newCategories });
-        toast.success('Service order updated successfully');
+
+        try {
+          await updateServiceOrder(activeId, newIndex, salonId);
+          toast.success('Service order updated successfully');
+        } catch (error) {
+          console.error('Error updating service order:', error);
+          setData(data); // Revert on error
+          toast.error('Failed to update service order');
+        }
       }
     }
 
@@ -557,21 +588,32 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
         const newCategories = [...data.categories];
         const [movedService] = newCategories[sourceCategoryIndex].services.splice(sourceServiceIndex, 1);
 
-        // If dropping over a service, insert at that position
+        // Calculate the new order index
+        let newOrderIndex;
         if (overData.type === 'service') {
           const targetServiceIndex = newCategories[targetCategoryIndex].services.findIndex(s => s.id === overId);
           if (targetServiceIndex !== -1) {
             newCategories[targetCategoryIndex].services.splice(targetServiceIndex, 0, movedService);
+            newOrderIndex = targetServiceIndex;
           } else {
             newCategories[targetCategoryIndex].services.push(movedService);
+            newOrderIndex = newCategories[targetCategoryIndex].services.length - 1;
           }
         } else {
-          // If dropping over a category, add to the end
           newCategories[targetCategoryIndex].services.push(movedService);
+          newOrderIndex = newCategories[targetCategoryIndex].services.length - 1;
         }
 
         setData({ ...data, categories: newCategories });
-        toast.success('Service moved to new category successfully');
+
+        try {
+          await updateServiceOrder(activeId, newOrderIndex, salonId, targetCategoryId);
+          toast.success('Service moved to new category successfully');
+        } catch (error) {
+          console.error('Error moving service:', error);
+          setData(data); // Revert on error
+          toast.error('Failed to move service');
+        }
       }
     }
 
@@ -644,12 +686,14 @@ export default function ServiceList({ salonId = 'salon-1' }: { salonId?: string 
         .sortable-item.drag-over-up {
           border-top: 2px solid hsl(var(--primary));
           background-color: hsl(var(--muted));
-          transform: translateY(-4px);
+          transform: translateY(-8px);
+          transition: transform 200ms ease;
         }
         .sortable-item.drag-over-down {
           border-bottom: 2px solid hsl(var(--primary));
           background-color: hsl(var(--muted));
-          transform: translateY(4px);
+          transform: translateY(8px);
+          transition: transform 200ms ease;
         }
         .sortable-item.drag-over-up::before {
           content: '';

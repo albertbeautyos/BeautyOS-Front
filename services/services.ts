@@ -115,6 +115,11 @@ export interface CategoryOrderResponse {
   data: CategoryData;
 }
 
+export interface ServiceOrderRequest {
+  newOrderIndex: number;
+  categoryId?: string;
+}
+
 export interface ServiceOrderResponse {
   success: boolean;
   message: string;
@@ -172,17 +177,24 @@ export const updateCategoryOrder = async (
  * @param serviceId - The ID of the service to reorder
  * @param newOrderIndex - The new order index for the service
  * @param salonId - The ID of the salon to use in the user-id header
+ * @param categoryId - Optional category ID when moving to a different category
  * @returns Promise with the response data
  */
 export const updateServiceOrder = async (
   serviceId: string,
   newOrderIndex: number,
-  salonId: string
+  salonId: string,
+  categoryId?: string
 ): Promise<ServiceOrderResponse> => {
   try {
+    const requestBody: ServiceOrderRequest = { newOrderIndex };
+    if (categoryId) {
+      requestBody.categoryId = categoryId;
+    }
+
     const response = await axiosInstance.patch(
       `/salon-services/${serviceId}/order`,
-      { newOrderIndex },
+      requestBody,
       {
         headers: {
           'user-id': salonId
